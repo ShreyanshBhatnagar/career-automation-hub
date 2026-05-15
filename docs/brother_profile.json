@@ -1,0 +1,32 @@
+{
+  "name": "Brother",
+  "background": "Electrical Engineer with heavy on-site Solar & Substation experience.",
+  "target_roles": [
+    "PSCAD & MATLAB Simulations Engineer",
+    "Cost Manager / Project Controls",
+    "System Studies Engineer",
+    "Power System / Renewable Energy Consultant",
+    "Electrical Design Engineer",
+    "Project Coordinator / Monitoring Engineer",
+    "Contract Administrator"
+  ],
+  "technical_skills": [
+    "PSCAD (Fault analysis, Control Logic)",
+    "MATLAB (Renewable Energy, Power Electronics)",
+    "AutoCAD (3D, Electrical Machines)",
+    "SLD Interpretation",
+    "Power Systems (Protection & Switchgear)",
+    "Solar Power Plant Execution (AC/DC)"
+  ],
+  "commercial_skills": [
+    "Contract Administration (T&Cs, Service Items)",
+    "SAP (Service Order Analysis, Material Reservation)",
+    "Service Order Amendments (Time Extensions, Quantity)",
+    "BOQ Preparation",
+    "Vendor Management",
+    "Contract Closure (LD applicability, Work Completion Certs)"
+  ],
+  "target_sectors": ["Solar", "Renewables", "Data Centers", "Transmission & Distribution (PSS)", "EPC"],
+  "locations": ["Ahmedabad", "Vadodara", "Mumbai", "Pune", "Hyderabad", "Bangalore", "Delhi NCR"],
+  "target_companies": ["Adani Green", "Adani Energy Solutions", "AdaniConneX", "EPC Vendors", "Renewable Consultants"]
+}

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opportunity Map — Deep Scan</title>
+  <style>
+    :root {
+      --bg: #0a0e14; --surface: #141b26; --surface2: #1c2636;
+      --border: #2a3a52; --text: #e8edf4; --muted: #7d92ad;
+      --accent: #3d9cf5; --green: #34d399; --amber: #fbbf24; --red: #f87171; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    header { border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; }
+    h1 { font-size: 1.25rem; } h1 span { color: var(--accent); }
+    .badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+    main { max-width: 1280px; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
+    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+  button, select {
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+      padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #0a0e14; font-weight: 600; }
+    button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:hover:not(:disabled) { filter: brightness(1.1); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; }
+    .stat .l { font-size: 0.65rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; }
+    .stat .v { font-size: 1.4rem; font-weight: 700; margin-top: 0.1rem; }
+    .tabs { display: flex; gap: 0.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .tab { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 0.6rem 1rem; color: var(--muted); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .panel { display: none; } .panel.active { display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { background: var(--surface2); color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
+    tr:hover td { background: rgba(61,156,245,0.05); }
+    .ch { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; }
+    .ch-linkedin { background: #0a66c233; color: #70b5ff; }
+    .ch-instagram { background: #e1306c33; color: #f472b6; }
+    .ch-x { background: #333; color: #ccc; }
+    .ch-facebook { background: #1877f233; color: #93c5fd; }
+    .ch-internal_careers { background: #34d39933; color: var(--green); }
+    .ch-hiring_site { background: #fbbf2433; color: var(--amber); }
+    .ch-tender, .ch-mnre, .ch-news { background: #a78bfa33; color: var(--purple); }
+    .ch-duckduckgo, .ch-web { background: #3d9cf533; color: var(--accent); }
+    .offbeat { color: var(--purple); font-size: 0.65rem; margin-left: 0.25rem; }
+    .score { font-weight: 700; }
+    .score.hi { color: var(--green); } .score.mid { color: var(--amber); } .score.lo { color: var(--muted); }
+    .status-ok { color: var(--green); } .status-fail { color: var(--red); } .status-warn { color: var(--amber); }
+    .scan-banner { background: var(--surface2); border: 1px solid var(--accent); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: none; }
+    .scan-banner.show { display: block; }
+    .audit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
+    .audit-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem; font-size: 0.75rem; }
+    .audit-card strong { display: block; color: var(--text); margin-bottom: 0.2rem; }
+    .empty { text-align: center; padding: 2rem; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; }
+    a { color: var(--accent); }
+    .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; align-items: center; }
+    .filters label { font-size: 0.75rem; color: var(--muted); }
+    #login-overlay {
+      position: fixed; inset: 0; background: rgba(10,14,20,0.92); display: flex;
+      align-items: center; justify-content: center; z-index: 100;
+    }
+    #login-overlay.hidden { display: none; }
+    .login-box {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.5rem; width: min(360px, 92vw);
+    }
+    .login-box h2 { font-size: 1rem; margin-bottom: 1rem; }
+    .login-box label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .login-box input {
+      width: 100%; margin-bottom: 0.75rem; padding: 0.5rem; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    }
+    .login-err { color: var(--red); font-size: 0.8rem; min-height: 1.2rem; }
+    #app-main.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="login-overlay">
+    <div class="login-box">
+      <h2>Sign in to Opportunity Map</h2>
+      <form id="login-form">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required maxlength="64" />
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128" />
+        <p class="login-err" id="login-err"></p>
+        <button type="submit" class="primary" style="width:100%">Sign in</button>
+      </form>
+    </div>
+  </div>
+  <div id="app-main" class="hidden">
+  <header>
+    <div>
+      <h1>Opportunity <span>Map</span></h1>
+      <p style="color:var(--muted);font-size:0.8rem;margin-top:0.2rem">Multi-source deep scan · SQLite cache · persists on refresh</p>
+    </div>
+    <div class="actions">
+      <span class="badge" id="persist-badge">DB cache</span>
+      <button class="primary" id="btn-scan">Run deep scan</button>
+      <button id="btn-refresh">Refresh</button>
+      <button id="btn-logout">Sign out</button>
+    </div>
+  </header>
+  <main>
+    <div class="scan-banner" id="scan-banner">Scanning all sources… This may take 1–2 minutes.</div>
+    <div class="stats" id="stats"></div>
+    <div class="tabs">
+      <button class="tab active" data-tab="roles">All roles</button>
+      <button class="tab" data-tab="offbeat">Off-beat / hidden</button>
+      <button class="tab" data-tab="audit">Scan audit trail</button>
+    </div>
+    <section class="panel active" id="panel-roles">
+      <div class="filters">
+        <label>Source</label>
+        <select id="filter-channel"><option value="">All channels</option></select>
+        <label>Min score</label>
+        <select id="filter-score">
+          <option value="">Any</option>
+          <option value="0.4">0.4+</option>
+          <option value="0.6">0.6+</option>
+          <option value="0.8">0.8+</option>
+        </select>
+      </div>
+      <div id="roles-table-wrap"></div>
+    </section>
+    <section class="panel" id="panel-offbeat">
+      <p style="color:var(--muted);font-size:0.8rem;margin-bottom:0.75rem">Tenders, MNRE signals, social radars, and non-obvious leads most job boards miss.</p>
+      <div id="offbeat-table-wrap"></div>
+    </section>
+    <section class="panel" id="panel-audit">
+      <h2 style="font-size:0.95rem;margin-bottom:0.5rem">Where we scanned</h2>
+      <div class="audit-grid" id="audit-grid"></div>
+      <div id="audit-table-wrap"></div>
+    </section>
+  </main>
+  </div>
+  <script>
+    let allRoles = [];
+    let scanPoll = null;
+
+    const CHANNELS = ['linkedin','instagram','x','facebook','internal_careers','hiring_site','tender','mnre','news','duckduckgo','web'];
+    const fetchOpts = { credentials: 'include' };
+
+    async function api(path, options = {}) {
+      const res = await fetch(path, { ...fetchOpts, ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+      if (res.status === 401) {
+        showLogin('Session expired. Sign in again.');
+        throw new Error('Unauthorized');
+      }
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Rate limit exceeded');
+      }
+      return res;
+    }
+
+    function showLogin(msg) {
+      document.getElementById('login-overlay').classList.remove('hidden');
+      document.getElementById('app-main').classList.add('hidden');
+      if (msg) document.getElementById('login-err').textContent = msg;
+    }
+
+    function showApp() {
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.getElementById('app-main').classList.remove('hidden');
+      document.getElementById('login-err').textContent = '';
+    }
+
+    async function checkSession() {
+      const res = await fetch('/auth/me', fetchOpts);
+      if (res.ok) {
+        showApp();
+        return true;
+      }
+      showLogin();
+      return false;
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim().slice(0, 64);
+      const password = document.getElementById('password').value.slice(0, 128);
+      const errEl = document.getElementById('login-err');
+      errEl.textContent = '';
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          errEl.textContent = data.error || 'Login failed';
+          return;
+        }
+        showApp();
+        await loadAll();
+      } catch {
+        errEl.textContent = 'Network error';
+      }
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+      showLogin();
+    });
+
+    document.querySelectorAll('.tab').forEach((t) => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+      });
+    });
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s ?? '';
+      return d.innerHTML;
+    }
+
+    function chBadge(ch) {
+      const c = (ch || 'web').replace(/\s/g, '_');
+      return `<span class="ch ch-${c}">${esc(ch || 'web')}</span>`;
+    }
+
+    function scoreClass(n) {
+      if (n >= 0.7) return 'hi';
+      if (n >= 0.4) return 'mid';
+      return 'lo';
+    }
+
+    function roleRow(r) {
+      const link = r.source_url ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">Open</a>` : '—';
+      return `<tr>
+        <td class="score ${scoreClass(r.relevance_score || 0)}">${r.relevance_score != null ? Number(r.relevance_score).toFixed(2) : '—'}</td>
+        <td>${chBadge(r.source_channel)}${r.is_offbeat ? '<span class="offbeat">◆ hidden</span>' : ''}</td>
+        <td>${esc(r.company_name)}</td>
+        <td>${esc(r.role_title)}</td>
+        <td>${esc(r.location || '—')}</td>
+        <td>${esc(r.sector || '—')}</td>
+        <td style="max-width:200px;font-size:0.72rem;color:var(--muted)">${esc((r.notes || '').slice(0, 120))}</td>
+        <td>${link}</td>
+      </tr>`;
+    }
+
+    function renderTable(el, rows) {
+      if (!rows.length) {
+        el.innerHTML = '<div class="empty">No roles yet. Click <strong>Run deep scan</strong> to search LinkedIn, Instagram, X, Facebook, hiring sites, company careers, tenders &amp; MNRE — results save to SQLite and persist on refresh.</div>';
+        return;
+      }
+      el.innerHTML = `<table><thead><tr>
+        <th>Score</th><th>Source</th><th>Company</th><th>Role</th><th>Location</th><th>Sector</th><th>Notes</th><th>Link</th>
+      </tr></thead><tbody>${rows.map(roleRow).join('')}</tbody></table>`;
+    }
+
+    function filteredRoles(offbeatOnly) {
+      const ch = document.getElementById('filter-channel').value;
+      const min = document.getElementById('filter-score').value;
+      return allRoles.filter((r) => {
+        if (offbeatOnly && !r.is_offbeat) return false;
+        if (ch && r.source_channel !== ch) return false;
+        if (min && (r.relevance_score || 0) < Number(min)) return false;
+        return true;
+      });
+    }
+
+    function renderRoles() {
+      renderTable(document.getElementById('roles-table-wrap'), filteredRoles(false));
+      renderTable(document.getElementById('offbeat-table-wrap'), filteredRoles(true));
+    }
+
+    function renderStats(summary) {
+      const t = summary?.totals || {};
+      document.getElementById('stats').innerHTML = `
+        <div class="stat"><div class="l">Cached roles</div><div class="v">${t.opportunities ?? 0}</div></div>
+        <div class="stat"><div class="l">Off-beat</div><div class="v">${t.offbeat ?? 0}</div></div>
+        <div class="stat"><div class="l">Last scan</div><div class="v" style="font-size:0.85rem">${summary?.lastScanAt ? new Date(summary.lastScanAt).toLocaleString() : 'Never'}</div></div>
+        <div class="stat"><div class="l">Sources checked</div><div class="v">${summary?.lastSession?.sources_checked ?? '—'}</div></div>
+      `;
+      const sel = document.getElementById('filter-channel');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">All channels</option>' +
+        CHANNELS.map((c) => `<option value="${c}">${c}</option>`).join('');
+      sel.value = cur;
+
+      const grid = document.getElementById('audit-grid');
+      const by = summary?.byChannel || [];
+      grid.innerHTML = by.length ? by.map((b) => `
+        <div class="audit-card">
+          <strong>${esc(b.source_channel || 'unknown')}</strong>
+          ${b.scans} scans · ${b.findings} findings<br>
+          <span class="status-ok">${b.ok} ok</span> · <span class="status-fail">${b.failed} failed</span>
+        </div>
+      `).join('') : '<div class="empty">Run a scan to see per-source breakdown.</div>';
+    }
+
+    async function loadAuditLogs() {
+      const res = await api('/scan-logs');
+      const logs = await res.json();
+      const wrap = document.getElementById('audit-table-wrap');
+      if (!logs.length) {
+        wrap.innerHTML = '';
+        return;
+      }
+      wrap.innerHTML = `<table><thead><tr>
+        <th>Time</th><th>Source</th><th>Channel</th><th>Status</th><th>Found</th><th>URL</th><th>Details</th>
+      </tr></thead><tbody>${logs.map((l) => {
+        const st = /fail/i.test(l.status) ? 'status-fail' : /success|indexed/i.test(l.status) ? 'status-ok' : 'status-warn';
+        return `<tr>
+          <td>${l.scanned_at ? new Date(l.scanned_at).toLocaleString() : '—'}</td>
+          <td>${esc(l.source_name)}</td>
+          <td>${chBadge(l.source_channel)}</td>
+          <td class="${st}">${esc(l.status)}</td>
+          <td>${l.findings_count ?? 0}</td>
+          <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis"><a href="${esc(l.url_scanned || '#')}" target="_blank">${esc((l.url_scanned || '').slice(0, 50))}</a></td>
+          <td style="font-size:0.72rem;color:var(--muted)">${esc(l.details)}</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
+    }
+
+    async function loadAll() {
+      const [rolesRes, summaryRes] = await Promise.all([
+        api('/opportunities'),
+        api('/scan/summary'),
+      ]);
+      allRoles = await rolesRes.json();
+      const summary = await summaryRes.json();
+      renderStats(summary);
+      renderRoles();
+      await loadAuditLogs();
+      document.getElementById('persist-badge').textContent =
+        `${allRoles.length} roles in SQLite cache`;
+    }
+
+    async function pollScanStatus() {
+      const res = await api('/scan/status');
+      const s = await res.json();
+      const banner = document.getElementById('scan-banner');
+      const btn = document.getElementById('btn-scan');
+      if (s.scanInProgress) {
+        banner.classList.add('show');
+        btn.disabled = true;
+        btn.textContent = 'Scanning…';
+      } else {
+        banner.classList.remove('show');
+        btn.disabled = false;
+        btn.textContent = 'Run deep scan';
+        if (scanPoll) {
+          clearInterval(scanPoll);
+          scanPoll = null;
+          await loadAll();
+        }
+      }
+    }
+
+    document.getElementById('btn-scan').addEventListener('click', async () => {
+      await api('/scan/run', { method: 'POST' });
+      scanPoll = setInterval(pollScanStatus, 2000);
+      pollScanStatus();
+    });
+    document.getElementById('btn-refresh').addEventListener('click', loadAll);
+    document.getElementById('filter-channel').addEventListener('change', renderRoles);
+    document.getElementById('filter-score').addEventListener('change', renderRoles);
+
+    checkSession().then((ok) => { if (ok) loadAll(); });
+  </script>
+</body>
+</html>

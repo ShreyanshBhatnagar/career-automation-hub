@@ -1,0 +1,18 @@
+# Local database
+career_engine.db
+
+# Environment variables (never commit secrets)
+.env
+.env.*
+!.env.example
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Node modules
+node_modules/
+
+# OS files
+.DS_Store

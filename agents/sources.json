@@ -1,0 +1,68 @@
+{
+  "career_portals": [
+    { "name": "Adani Careers", "url": "https://www.adani.com/careers", "channel": "internal_careers", "company": "Adani Group" },
+    { "name": "Adani Green Energy", "url": "https://www.adanigreenenergy.com/careers", "channel": "internal_careers", "company": "Adani Green" },
+    { "name": "Tata Power", "url": "https://www.tatapower.com/careers", "channel": "internal_careers", "company": "Tata Power" },
+    { "name": "ReNew Power", "url": "https://www.renew.com/careers", "channel": "internal_careers", "company": "ReNew Power" },
+    { "name": "Sterling & Wilson", "url": "https://www.sterlingandwilson.com/career", "channel": "internal_careers", "company": "Sterling & Wilson" },
+    { "name": "ACME Solar", "url": "https://acmesolar.in/careers/", "channel": "internal_careers", "company": "ACME Solar" },
+    { "name": "Suzlon", "url": "https://www.suzlon.com/careers", "channel": "internal_careers", "company": "Suzlon" },
+    { "name": "L&T Power", "url": "https://www.larsentoubro.com/careers/", "channel": "internal_careers", "company": "L&T" }
+  ],
+  "hiring_boards": [
+    { "name": "Naukri Solar", "url": "https://www.naukri.com/solar-jobs", "channel": "hiring_site" },
+    { "name": "Indeed India PSCAD", "url": "https://in.indeed.com/jobs?q=PSCAD+engineer", "channel": "hiring_site" },
+    { "name": "Shine Renewables", "url": "https://www.shine.com/job-search/renewable-energy-jobs", "channel": "hiring_site" },
+    { "name": "Internshala MNRE", "url": "https://internshala.com/internships/renewable-energy-internship", "channel": "hiring_site" }
+  ],
+  "tenders_and_signals": [
+    { "name": "SECI Tenders", "url": "https://www.seci.co.in/tenders", "channel": "tender", "signal_type": "project_award" },
+    { "name": "MNRE Updates", "url": "https://mnre.gov.in/", "channel": "mnre", "signal_type": "policy_hiring" },
+    { "name": "Mercom India Solar", "url": "https://mercomindia.com/category/solar/", "channel": "news", "signal_type": "commissioning_news" },
+    { "name": "Power Line Magazine", "url": "https://www.powerline.net.in/", "channel": "news", "signal_type": "project_news" }
+  ],
+  "linkedin": {
+    "channel": "linkedin",
+    "search_urls": [
+      "https://www.linkedin.com/jobs/search/?keywords=PSCAD%20MATLAB%20engineer%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=Solar%20commissioning%20engineer%20Gujarat",
+      "https://www.linkedin.com/jobs/search/?keywords=Contract%20Administrator%20SAP%20EPC",
+      "https://www.linkedin.com/jobs/search/?keywords=Project%20Controls%20Renewable%20Ahmedabad"
+    ]
+  },
+  "instagram": {
+    "channel": "instagram",
+    "hashtags": ["#solarjobsindia", "#renewablehiring", "#epchiring", "#ahmedabadjobs", "#powerengineerjobs"],
+    "search_urls": [
+      "https://www.instagram.com/explore/tags/solarjobsindia/",
+      "https://www.instagram.com/explore/tags/renewablehiring/"
+    ]
+  },
+  "x_twitter": {
+    "channel": "x",
+    "search_urls": [
+      "https://x.com/search?q=hiring%20solar%20engineer%20Gujarat&f=live",
+      "https://x.com/search?q=PSCAD%20MATLAB%20hiring%20India&f=live",
+      "https://x.com/search?q=renewable%20commissioning%20vacancy&f=live"
+    ]
+  },
+  "facebook": {
+    "channel": "facebook",
+    "search_urls": [
+      "https://www.facebook.com/search/posts/?q=solar%20engineer%20hiring%20ahmedabad",
+      "https://www.facebook.com/search/posts/?q=renewable%20energy%20jobs%20gujarat"
+    ]
+  },
+  "duckduckgo_queries": [
+    "site:linkedin.com PSCAD MATLAB engineer hiring India 2025",
+    "site:instagram.com solar commissioning engineer hiring Gujarat",
+    "site:facebook.com renewable energy project coordinator hiring",
+    "site:x.com OR site:twitter.com solar EPC hiring Gujarat",
+    "MNRE internship solar commissioning engineer Gujarat",
+    "Khavda solar park hiring project coordinator",
+    "data center electrical engineer SAP contract admin India",
+    "offbeat renewable energy contract administrator hiring",
+    "PSCAD simulation engineer vacancy Ahmedabad EPC",
+    "substation commissioning engineer hiring not on naukri"
+  ]
+}
