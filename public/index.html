@@ -105,7 +105,10 @@
     </div>
   </header>
   <main>
-    <div class="scan-banner" id="scan-banner">Scanning all sources… This may take 1–2 minutes.</div>
+    <div class="scan-banner" id="scan-banner">
+      <div id="scan-status-text">Scanning all sources… This may take 1–2 minutes.</div>
+      <div id="scan-details" style="font-size:0.75rem;margin-top:0.4rem;color:var(--accent);font-family:monospace"></div>
+    </div>
     <div class="stats" id="stats"></div>
     <div class="tabs">
       <button class="tab active" data-tab="roles">All roles</button>
@@ -270,13 +273,19 @@
     }
 
     function roleRow(r) {
-      const link = r.source_url ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">Open</a>` : '—';
+      const link = r.source_url ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener" style="word-break:break-all;font-size:0.7rem">${esc(r.source_url)}</a>` : '—';
+      const posted = r.posted_at ? new Date(r.posted_at).toLocaleDateString() : '—';
+      const expMatch = (r.notes || '' + r.role_title).match(/(\d+)\+?\s*years?/i);
+      const exp = expMatch ? expMatch[0] : '—';
+
       return `<tr>
         <td class="score ${scoreClass(r.relevance_score || 0)}">${r.relevance_score != null ? Number(r.relevance_score).toFixed(2) : '—'}</td>
         <td>${chBadge(r.source_channel)}${r.is_offbeat ? '<span class="offbeat">◆ hidden</span>' : ''}</td>
         <td>${esc(r.company_name)}</td>
         <td>${esc(r.role_title)}</td>
         <td>${esc(r.location || '—')}</td>
+        <td>${posted}</td>
+        <td>${exp}</td>
         <td>${esc(r.sector || '—')}</td>
         <td style="max-width:200px;font-size:0.72rem;color:var(--muted)">${esc((r.notes || '').slice(0, 120))}</td>
         <td>${link}</td>
@@ -289,7 +298,7 @@
         return;
       }
       el.innerHTML = `<table><thead><tr>
-        <th>Score</th><th>Source</th><th>Company</th><th>Role</th><th>Location</th><th>Sector</th><th>Notes</th><th>Link</th>
+        <th>Score</th><th>Source</th><th>Company</th><th>Role</th><th>Location</th><th>Posted</th><th>Exp</th><th>Sector</th><th>Notes</th><th>URL</th>
       </tr></thead><tbody>${rows.map(roleRow).join('')}</tbody></table>`;
     }
 
@@ -314,30 +323,38 @@
         if (ch && r.source_channel !== ch) return false;
         if (min && (r.relevance_score || 0) < Number(min)) return false;
 
-        const text = `${r.company_name} ${r.role_title} ${r.location} ${r.notes}`.toLowerCase();
+        const text = `${r.company_name} ${r.role_title} ${r.location} ${r.notes} ${r.sector}`.toLowerCase();
         if (query && !text.includes(query)) return false;
 
         if (skill && !text.includes(skill)) return false;
 
         if (exp) {
           const y = text.match(/(\d+)\+?\s*years?/);
-          if (y) {
-            const val = parseInt(y[1]);
+          const val = y ? parseInt(y[1]) : null;
+          if (val !== null) {
             if (exp === 'junior' && val > 3) return false;
             if (exp === 'mid' && (val < 3 || val > 7)) return false;
             if (exp === 'senior' && val < 7) return false;
+          } else if (exp) {
+            // If user selected an experience level but we didn't find one in text,
+            // we'll be conservative and show it unless it's obviously wrong.
+            // But for a filter to "work", it usually should be restrictive.
+            // Let's hide if we can't confirm it matches the filter.
+            return false;
           }
         }
 
         if (timeLimit) {
           const days = Number(timeLimit);
-          const date = new Date(r.last_scanned_at || r.created_at);
+          const timestamp = r.posted_at || r.last_scanned_at || r.created_at;
+          const date = new Date(timestamp);
           if (Date.now() - date.getTime() > days * 24 * 60 * 60 * 1000) return false;
         }
 
         if (metroOnly) {
           const loc = (r.location || '').toLowerCase();
-          if (!METRO_CITIES.some((city) => loc.includes(city))) return false;
+          const matchesMetro = METRO_CITIES.some((city) => loc.includes(city));
+          if (!matchesMetro) return false;
         }
 
         return true;
@@ -399,10 +416,29 @@
       }).join('')}</tbody></table>`;
     }
 
+    async function loadProfile() {
+      try {
+        const res = await api('/profile');
+        const profile = await res.json();
+        const skillSel = document.getElementById('filter-skill');
+        const current = skillSel.value;
+        skillSel.innerHTML = '<option value="">All skills</option>';
+        const skills = [...(profile.technical_skills || []), ...(profile.commercial_skills || [])];
+        skills.forEach(s => {
+          const name = s.split('(')[0].trim();
+          skillSel.innerHTML += `<option value="${name.toLowerCase()}">${name}</option>`;
+        });
+        skillSel.value = current;
+      } catch (e) {
+        console.error('Failed to load profile skills', e);
+      }
+    }
+
     async function loadAll() {
       const [rolesRes, summaryRes] = await Promise.all([
         api('/opportunities'),
         api('/scan/summary'),
+        loadProfile(),
       ]);
       allRoles = await rolesRes.json();
       const summary = await summaryRes.json();
@@ -418,10 +454,15 @@
       const s = await res.json();
       const banner = document.getElementById('scan-banner');
       const btn = document.getElementById('btn-scan');
+      const detailsEl = document.getElementById('scan-details');
+
       if (s.scanInProgress) {
         banner.classList.add('show');
         btn.disabled = true;
         btn.textContent = 'Scanning…';
+        if (s.lastLog) {
+          detailsEl.textContent = `[${new Date(s.lastLog.scanned_at).toLocaleTimeString()}] ${s.lastLog.source_name}: ${s.lastLog.status} (${s.lastLog.findings_count} found)`;
+        }
       } else {
         banner.classList.remove('show');
         btn.disabled = false;

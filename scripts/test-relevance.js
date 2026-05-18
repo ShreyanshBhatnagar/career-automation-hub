@@ -1,5 +1,7 @@
 import { scoreOpportunity, matchesRoleKeywords } from '../logic/relevance.js';
 
+// No need to import TECH/COMMERCIAL anymore as logic/relevance.js handles dynamic loading
+
 function testRelevance() {
   console.log('--- Testing Relevance Logic ---');
 
