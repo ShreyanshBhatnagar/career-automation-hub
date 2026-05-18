@@ -7,7 +7,12 @@
     { "name": "Sterling & Wilson", "url": "https://www.sterlingandwilson.com/career", "channel": "internal_careers", "company": "Sterling & Wilson" },
     { "name": "ACME Solar", "url": "https://acmesolar.in/careers/", "channel": "internal_careers", "company": "ACME Solar" },
     { "name": "Suzlon", "url": "https://www.suzlon.com/careers", "channel": "internal_careers", "company": "Suzlon" },
-    { "name": "L&T Power", "url": "https://www.larsentoubro.com/careers/", "channel": "internal_careers", "company": "L&T" }
+    { "name": "L&T Power", "url": "https://www.larsentoubro.com/careers/", "channel": "internal_careers", "company": "L&T" },
+    { "name": "Waaree Energies", "url": "https://waaree.com/careers", "channel": "internal_careers", "company": "Waaree" },
+    { "name": "Vikram Solar", "url": "https://www.vikramsolar.com/careers/", "channel": "internal_careers", "company": "Vikram Solar" },
+    { "name": "Goldi Solar", "url": "https://goldisolar.com/careers/", "channel": "internal_careers", "company": "Goldi Solar" },
+    { "name": "Jakson Group", "url": "https://www.jakson.com/careers", "channel": "internal_careers", "company": "Jakson" },
+    { "name": "Azure Power", "url": "https://www.azurepower.com/careers", "channel": "internal_careers", "company": "Azure Power" }
   ],
   "hiring_boards": [
     { "name": "Naukri Solar", "url": "https://www.naukri.com/solar-jobs", "channel": "hiring_site" },
@@ -57,6 +62,15 @@
     ]
   },
   "duckduckgo_queries": [
+    "site:linkedin.com \"Founder's Office\" renewable energy India hiring",
+    "site:linkedin.com \"Chief of Staff\" EPC energy India hiring",
+    "site:wellfound.com \"Founder's Office\" energy startup India",
+    "site:ycombinator.com \"Chief of Staff\" renewable energy",
+    "PSCAD MATLAB engineer \"DM me\" India hiring",
+    "SAP Contract Administrator \"looking for\" EPC India hiring",
+    "site:darwinbox.in \"hiring\" renewable energy India",
+    "\"young leadership\" program renewable energy India",
+    "site:linkedin.com \"Chief of Staff\" SAP IT India",
     "site:linkedin.com PSCAD MATLAB Simulink engineer hiring India",
     "site:linkedin.com SAP Contract Administrator EPC Renewables India",
     "site:naukri.com ETAP Power System Studies Engineer vacancy",

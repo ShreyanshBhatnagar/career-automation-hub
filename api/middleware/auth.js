@@ -30,6 +30,16 @@ function tokenFromRequest(req) {
 }
 
 export function requireUser(req, res, next) {
+  // Allow Basic Auth for CLI tools
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Basic ')) {
+    const creds = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    if (creds[0] === env.ADMIN_USERNAME && creds[1] === env.ADMIN_PASSWORD) {
+      req.user = { username: creds[0] };
+      return next();
+    }
+  }
+
   const token = tokenFromRequest(req);
   if (!token) return res.status(401).json({ error: 'Authentication required.' });
   try {
