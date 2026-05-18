@@ -8,7 +8,10 @@
     "Power System / Renewable Energy Consultant",
     "Electrical Design Engineer",
     "Project Coordinator / Monitoring Engineer",
-    "Contract Administrator"
+    "Contract Administrator",
+    "Founder's Office",
+    "Chief of Staff",
+    "Leadership for Young Employees"
   ],
   "technical_skills": [
     "PSCAD (Fault analysis, Control Logic)",
@@ -26,7 +29,7 @@
     "Vendor Management",
     "Contract Closure (LD applicability, Work Completion Certs)"
   ],
-  "target_sectors": ["Solar", "Renewables", "Data Centers", "Transmission & Distribution (PSS)", "EPC"],
+  "target_sectors": ["Solar", "Renewables", "Data Centers", "Transmission & Distribution (PSS)", "EPC", "SAP-IT", "Energy"],
   "locations": ["Ahmedabad", "Vadodara", "Mumbai", "Pune", "Hyderabad", "Bangalore", "Delhi NCR"],
   "target_companies": ["Adani Green", "Adani Energy Solutions", "AdaniConneX", "EPC Vendors", "Renewable Consultants"]
 }

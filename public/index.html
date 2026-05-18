@@ -111,9 +111,8 @@
     </div>
     <div class="stats" id="stats"></div>
     <div class="tabs">
-      <button class="tab active" data-tab="roles">All roles</button>
-      <button class="tab" data-tab="linkedin">LinkedIn</button>
-      <button class="tab" data-tab="offbeat">Off-beat / hidden</button>
+      <button class="tab active" data-tab="roles">Live Feed</button>
+      <button class="tab" data-tab="mapper">Resume-Skill Mapper</button>
       <button class="tab" data-tab="audit">Scan audit trail</button>
     </div>
 
@@ -121,6 +120,8 @@
       <input type="text" id="search-input" placeholder="Search company, role, location..." style="width: 240px;" />
       <label>Source</label>
       <select id="filter-channel"><option value="">All channels</option></select>
+      <label>Sector</label>
+      <select id="filter-sector"><option value="">All sectors</option></select>
       <label>Min score</label>
       <select id="filter-score">
         <option value="">Any</option>
@@ -142,15 +143,6 @@
         <option value="mid">3-7y</option>
         <option value="senior">7y+</option>
       </select>
-      <label>Skill</label>
-      <select id="filter-skill">
-        <option value="">All skills</option>
-        <option value="pscad">PSCAD</option>
-        <option value="matlab">MATLAB</option>
-        <option value="sap">SAP</option>
-        <option value="contract">Contract Admin</option>
-        <option value="solar">Solar</option>
-      </select>
       <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer">
         <input type="checkbox" id="filter-metro" /> Metro Cities
       </label>
@@ -159,12 +151,9 @@
     <section class="panel active" id="panel-roles">
       <div id="roles-table-wrap"></div>
     </section>
-    <section class="panel" id="panel-linkedin">
-      <div id="linkedin-table-wrap"></div>
-    </section>
-    <section class="panel" id="panel-offbeat">
-      <p style="color:var(--muted);font-size:0.8rem;margin-bottom:0.75rem">Tenders, MNRE signals, social radars, and non-obvious leads most job boards miss.</p>
-      <div id="offbeat-table-wrap"></div>
+    <section class="panel" id="panel-mapper">
+      <h2 style="font-size:0.95rem;margin-bottom:1rem">Skill Applicability Map</h2>
+      <div id="mapper-viz" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.5rem"></div>
     </section>
     <section class="panel" id="panel-audit">
       <h2 style="font-size:0.95rem;margin-bottom:0.5rem">Where we scanned</h2>
@@ -307,26 +296,35 @@
       'chennai', 'kolkata', 'surat', 'jaipur', 'lucknow', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'ghaziabad', 'ludhiana', 'coimbatore'
     ];
 
-    function filteredRoles(mode) {
+    function parseRelativeDate(text) {
+      const now = new Date();
+      const m = text.match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
+      if (!m) return null;
+      const num = parseInt(m[1]);
+      const unit = m[2].toLowerCase();
+      if (unit.startsWith('hour')) return new Date(now - num * 3600000);
+      if (unit.startsWith('day')) return new Date(now - num * 86400000);
+      if (unit.startsWith('week')) return new Date(now - num * 604800000);
+      if (unit.startsWith('month')) return new Date(now - num * 2592000000);
+      return null;
+    }
+
+    function filteredRoles() {
       const query = (document.getElementById('search-input')?.value || '').toLowerCase();
       const ch = document.getElementById('filter-channel').value;
+      const sector = document.getElementById('filter-sector').value;
       const min = document.getElementById('filter-score').value;
       const timeLimit = document.getElementById('filter-time').value;
       const exp = document.getElementById('filter-exp').value;
-      const skill = document.getElementById('filter-skill').value;
       const metroOnly = document.getElementById('filter-metro').checked;
 
       return allRoles.filter((r) => {
-        if (mode === 'linkedin' && r.source_channel !== 'linkedin') return false;
-        if (mode === 'offbeat' && !r.is_offbeat) return false;
-
         if (ch && r.source_channel !== ch) return false;
         if (min && (r.relevance_score || 0) < Number(min)) return false;
+        if (sector && (r.sector || '').toLowerCase() !== sector) return false;
 
         const text = `${r.company_name} ${r.role_title} ${r.location} ${r.notes} ${r.sector}`.toLowerCase();
         if (query && !text.includes(query)) return false;
-
-        if (skill && !text.includes(skill)) return false;
 
         if (exp) {
           const y = text.match(/(\d+)\+?\s*years?/);
@@ -336,17 +334,14 @@
             if (exp === 'mid' && (val < 3 || val > 7)) return false;
             if (exp === 'senior' && val < 7) return false;
           } else if (exp) {
-            // If user selected an experience level but we didn't find one in text,
-            // we'll be conservative and show it unless it's obviously wrong.
-            // But for a filter to "work", it usually should be restrictive.
-            // Let's hide if we can't confirm it matches the filter.
             return false;
           }
         }
 
         if (timeLimit) {
           const days = Number(timeLimit);
-          const timestamp = r.posted_at || r.last_scanned_at || r.created_at;
+          const relDate = parseRelativeDate(r.notes || '');
+          const timestamp = r.posted_at || relDate || r.last_scanned_at || r.created_at;
           const date = new Date(timestamp);
           if (Date.now() - date.getTime() > days * 24 * 60 * 60 * 1000) return false;
         }
@@ -362,9 +357,8 @@
     }
 
     function renderRoles() {
-      renderTable(document.getElementById('roles-table-wrap'), filteredRoles('roles'));
-      renderTable(document.getElementById('linkedin-table-wrap'), filteredRoles('linkedin'));
-      renderTable(document.getElementById('offbeat-table-wrap'), filteredRoles('offbeat'));
+      const wrap = document.getElementById('roles-table-wrap');
+      if (wrap) renderTable(wrap, filteredRoles());
     }
 
     function renderStats(summary) {
@@ -420,17 +414,34 @@
       try {
         const res = await api('/profile');
         const profile = await res.json();
-        const skillSel = document.getElementById('filter-skill');
-        const current = skillSel.value;
-        skillSel.innerHTML = '<option value="">All skills</option>';
-        const skills = [...(profile.technical_skills || []), ...(profile.commercial_skills || [])];
-        skills.forEach(s => {
-          const name = s.split('(')[0].trim();
-          skillSel.innerHTML += `<option value="${name.toLowerCase()}">${name}</option>`;
+
+        const sectorSel = document.getElementById('filter-sector');
+        const curSec = sectorSel.value;
+        sectorSel.innerHTML = '<option value="">All sectors</option>';
+        (profile.target_sectors || []).forEach(s => {
+          sectorSel.innerHTML += `<option value="${s.toLowerCase()}">${s}</option>`;
         });
-        skillSel.value = current;
+        sectorSel.value = curSec;
+
+        const viz = document.getElementById('mapper-viz');
+        const allSkills = [...(profile.technical_skills || []), ...(profile.commercial_skills || [])];
+        const sectors = profile.target_sectors || [];
+
+        viz.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem">
+          ${sectors.map(s => `
+            <div style="background:var(--surface2);padding:1rem;border-radius:8px">
+              <h3 style="font-size:0.85rem;margin-bottom:0.75rem;color:var(--accent)">${s}</h3>
+              <div style="display:flex;flex-wrap:wrap;gap:0.4rem">
+                ${allSkills.map(sk => {
+                  const name = sk.split('(')[0].trim();
+                  return `<span class="badge" style="background:rgba(61,156,245,0.1);color:var(--text);border-color:rgba(61,156,245,0.3)">${name}</span>`;
+                }).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
       } catch (e) {
-        console.error('Failed to load profile skills', e);
+        console.error('Failed to load profile', e);
       }
     }
 
@@ -486,7 +497,7 @@
     document.getElementById('search-input').addEventListener('input', renderRoles);
     document.getElementById('filter-time').addEventListener('change', renderRoles);
     document.getElementById('filter-exp').addEventListener('change', renderRoles);
-    document.getElementById('filter-skill').addEventListener('change', renderRoles);
+    document.getElementById('filter-sector').addEventListener('change', renderRoles);
     document.getElementById('filter-metro').addEventListener('change', renderRoles);
 
     checkSession().then((ok) => { if (ok) loadAll(); });

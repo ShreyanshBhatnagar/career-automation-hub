@@ -38,7 +38,8 @@ export function scoreOpportunity({ role_title = '', notes = '', sector = '', loc
     reasons.push('sector_match');
   }
   if (targetRoles.some((r) => text.includes(r.split('/')[0].trim().slice(0, 12)))) {
-    score += 0.1;
+    const isLeadership = /founder|chief|leadership|lead|manager|head/i.test(text);
+    score += isLeadership ? 0.25 : 0.1;
     reasons.push('role_match');
   }
 
