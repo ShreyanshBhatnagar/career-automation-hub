@@ -19,12 +19,21 @@ export async function scanUrlList(ctx, items, opts = {}) {
     if (page.ok) {
       const text = stripHtml(page.html);
       const lines = extractLines(text);
+
+      // Look for specific job links in the HTML
+      const linkRegex = /href=["'](https?:\/\/[^"']*(?:job|vacancy|career|opening)[^"']*)["']/gi;
+      const sublinks = [...page.html.matchAll(linkRegex)].map(m => m[1]).slice(0, 5);
+
       for (const line of lines) {
         const role = roleFromSnippet(line, item.company || item.name);
         if (!role) continue;
+
+        // Try to find a more specific sublink for this role if it exists
+        const bestUrl = sublinks.find(sl => sl.toLowerCase().includes(role.role_title.toLowerCase().split(' ')[0])) || url;
+
         await upsertOpportunity(ctx.db, ctx.run, {
           ...role,
-          source_url: `${url}#${encodeURIComponent(role.role_title.slice(0, 40))}`,
+          source_url: bestUrl === url ? `${url}#${encodeURIComponent(role.role_title.slice(0, 40))}` : bestUrl,
           source_channel: item.channel || opts.channel,
           source_type,
           is_offbeat: offbeat ? 1 : 0,
