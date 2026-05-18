@@ -5,12 +5,14 @@ const profilePath = path.resolve('./docs/brother_profile.json');
 const profile = JSON.parse(fs.readFileSync(profilePath, 'utf-8'));
 
 const TECH = [
-  'pscad', 'matlab', 'autocad', 'power system', 'protection', 'switchgear',
-  'solar', 'substation', 'sld', 'commissioning', 'renewable', 'grid',
+  'pscad', 'matlab', 'simulink', 'autocad', 'power system', 'protection', 'switchgear',
+  'solar', 'substation', 'sld', 'commissioning', 'renewable', 'grid', 'etap',
+  'digsilent', 'powerfactory', 'transient', 'harmonics', 'insulation coordination',
 ];
 const COMMERCIAL = [
   'contract', 'sap', 'billing', 'boq', 'vendor', 'project controls',
-  'cost manager', 'service order', 'ld', 'closure',
+  'cost manager', 'service order', 'ld', 'closure', 'procurement', 'tendering',
+  'bidding', 'estimation', 'invoice', 'claims', 'amendment',
 ];
 const LOCATIONS = (profile.locations || []).map((l) => l.toLowerCase());
 const SECTORS = (profile.target_sectors || []).map((s) => s.toLowerCase());
@@ -18,16 +20,19 @@ const TARGET_ROLES = (profile.target_roles || []).map((r) => r.toLowerCase());
 
 export function scoreOpportunity({ role_title = '', notes = '', sector = '', location = '', company_name = '' }) {
   const text = `${role_title} ${notes} ${sector} ${location} ${company_name}`.toLowerCase();
-  let score = 0.15;
+  let score = 0.1;
   const reasons = [];
 
-  if (TECH.some((k) => text.includes(k))) {
-    score += 0.3;
-    reasons.push('technical_match');
+  const techMatches = TECH.filter((k) => text.includes(k));
+  if (techMatches.length > 0) {
+    score += Math.min(0.4, 0.2 + techMatches.length * 0.05);
+    reasons.push(`tech:${techMatches[0]}`);
   }
-  if (COMMERCIAL.some((k) => text.includes(k))) {
-    score += 0.3;
-    reasons.push('commercial_match');
+
+  const commMatches = COMMERCIAL.filter((k) => text.includes(k));
+  if (commMatches.length > 0) {
+    score += Math.min(0.4, 0.2 + commMatches.length * 0.05);
+    reasons.push(`comm:${commMatches[0]}`);
   }
   if (LOCATIONS.some((l) => text.includes(l)) || /gujarat|ahmedabad|vadodara/i.test(text)) {
     score += 0.2;
@@ -61,3 +66,5 @@ export function matchesRoleKeywords(text) {
   ];
   return keys.some((k) => t.includes(k));
 }
+
+export { TECH, COMMERCIAL };

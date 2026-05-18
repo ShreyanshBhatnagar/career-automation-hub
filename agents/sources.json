@@ -24,15 +24,13 @@
   "linkedin": {
     "channel": "linkedin",
     "search_urls": [
-      "https://www.linkedin.com/jobs/search/?keywords=PSCAD%20MATLAB%20engineer%20India",
-      "https://www.linkedin.com/jobs/search/?keywords=Solar%20commissioning%20engineer%20Gujarat",
-      "https://www.linkedin.com/jobs/search/?keywords=Contract%20Administrator%20SAP%20EPC",
-      "https://www.linkedin.com/jobs/search/?keywords=Project%20Controls%20Renewable%20Ahmedabad",
-      "https://www.linkedin.com/jobs/search/?keywords=Electrical%20Engineer%20Renewable%20Mumbai",
-      "https://www.linkedin.com/jobs/search/?keywords=Power%20Systems%20Engineer%20Bangalore",
-      "https://www.linkedin.com/jobs/search/?keywords=Solar%20Project%20Manager%20Delhi%20NCR",
-      "https://www.linkedin.com/jobs/search/?keywords=Substation%20Engineer%20Hyderabad",
-      "https://www.linkedin.com/jobs/search/?keywords=Renewable%20Energy%20Consultant%20Pune"
+      "https://www.linkedin.com/jobs/search/?keywords=PSCAD%20MATLAB%20Simulink%20ETAP%20engineer",
+      "https://www.linkedin.com/jobs/search/?keywords=Contract%20Administrator%20SAP%20BOQ%20EPC",
+      "https://www.linkedin.com/jobs/search/?keywords=Power%20Systems%20Protection%20Switchgear%20hiring",
+      "https://www.linkedin.com/jobs/search/?keywords=Solar%20Commissioning%20Engineer%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=Project%20Controls%20Cost%20Manager%20Renewables",
+      "https://www.linkedin.com/jobs/search/?keywords=Electrical%20Design%20Engineer%20SLD%20AutoCAD",
+      "https://www.linkedin.com/jobs/search/?keywords=Renewable%20Energy%20Consultant%20Grid%20Studies"
     ]
   },
   "instagram": {
@@ -59,15 +57,15 @@
     ]
   },
   "duckduckgo_queries": [
-    "site:linkedin.com PSCAD MATLAB engineer hiring India 2025",
-    "site:instagram.com solar commissioning engineer hiring Gujarat",
-    "site:facebook.com renewable energy project coordinator hiring",
-    "site:x.com OR site:twitter.com solar EPC hiring Gujarat",
-    "MNRE internship solar commissioning engineer Gujarat",
-    "Khavda solar park hiring project coordinator",
-    "data center electrical engineer SAP contract admin India",
-    "offbeat renewable energy contract administrator hiring",
-    "PSCAD simulation engineer vacancy Ahmedabad EPC",
-    "substation commissioning engineer hiring not on naukri"
+    "site:linkedin.com PSCAD MATLAB Simulink engineer hiring India",
+    "site:linkedin.com SAP Contract Administrator EPC Renewables India",
+    "site:naukri.com ETAP Power System Studies Engineer vacancy",
+    "site:indeed.com Solar Commissioning Engineer Mumbai Bangalore",
+    "site:glassdoor.co.in PSCAD Simulation Engineer Ahmedabad Vadodara",
+    "Renewable energy project controls manager hiring India",
+    "Electrical protection switchgear engineer vacancy Chennai Hyderabad",
+    "Cost Manager SAP Service Order renewable energy India",
+    "Grid integration studies engineer hiring PSCAD Digsilent",
+    "Substation design engineer SLD AutoCAD vacancy India"
   ]
 }

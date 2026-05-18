@@ -132,6 +132,22 @@
         <option value="3">Past 3 days</option>
         <option value="7">Past 7 days</option>
       </select>
+      <label>Exp</label>
+      <select id="filter-exp">
+        <option value="">All</option>
+        <option value="junior">0-3y</option>
+        <option value="mid">3-7y</option>
+        <option value="senior">7y+</option>
+      </select>
+      <label>Skill</label>
+      <select id="filter-skill">
+        <option value="">All skills</option>
+        <option value="pscad">PSCAD</option>
+        <option value="matlab">MATLAB</option>
+        <option value="sap">SAP</option>
+        <option value="contract">Contract Admin</option>
+        <option value="solar">Solar</option>
+      </select>
       <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer">
         <input type="checkbox" id="filter-metro" /> Metro Cities
       </label>
@@ -233,11 +249,6 @@
         t.classList.add('active');
         const panelId = 'panel-' + t.dataset.tab;
         document.getElementById(panelId).classList.add('active');
-
-        // Hide filters on audit panel
-        const filters = document.getElementById('global-filters');
-        if (t.dataset.tab === 'audit') filters.style.display = 'none';
-        else filters.style.display = 'flex';
       });
     });
 
@@ -282,13 +293,18 @@
       </tr></thead><tbody>${rows.map(roleRow).join('')}</tbody></table>`;
     }
 
-    const METRO_CITIES = ['ahmedabad', 'vadodara', 'mumbai', 'pune', 'hyderabad', 'bangalore', 'delhi', 'noida', 'gurgaon', 'ncr'];
+    const METRO_CITIES = [
+      'ahmedabad', 'vadodara', 'mumbai', 'pune', 'hyderabad', 'bangalore', 'delhi', 'noida', 'gurgaon', 'ncr',
+      'chennai', 'kolkata', 'surat', 'jaipur', 'lucknow', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'ghaziabad', 'ludhiana', 'coimbatore'
+    ];
 
     function filteredRoles(mode) {
       const query = (document.getElementById('search-input')?.value || '').toLowerCase();
       const ch = document.getElementById('filter-channel').value;
       const min = document.getElementById('filter-score').value;
       const timeLimit = document.getElementById('filter-time').value;
+      const exp = document.getElementById('filter-exp').value;
+      const skill = document.getElementById('filter-skill').value;
       const metroOnly = document.getElementById('filter-metro').checked;
 
       return allRoles.filter((r) => {
@@ -298,9 +314,19 @@
         if (ch && r.source_channel !== ch) return false;
         if (min && (r.relevance_score || 0) < Number(min)) return false;
 
-        if (query) {
-          const text = `${r.company_name} ${r.role_title} ${r.location} ${r.notes}`.toLowerCase();
-          if (!text.includes(query)) return false;
+        const text = `${r.company_name} ${r.role_title} ${r.location} ${r.notes}`.toLowerCase();
+        if (query && !text.includes(query)) return false;
+
+        if (skill && !text.includes(skill)) return false;
+
+        if (exp) {
+          const y = text.match(/(\d+)\+?\s*years?/);
+          if (y) {
+            const val = parseInt(y[1]);
+            if (exp === 'junior' && val > 3) return false;
+            if (exp === 'mid' && (val < 3 || val > 7)) return false;
+            if (exp === 'senior' && val < 7) return false;
+          }
         }
 
         if (timeLimit) {
@@ -418,6 +444,8 @@
     document.getElementById('filter-score').addEventListener('change', renderRoles);
     document.getElementById('search-input').addEventListener('input', renderRoles);
     document.getElementById('filter-time').addEventListener('change', renderRoles);
+    document.getElementById('filter-exp').addEventListener('change', renderRoles);
+    document.getElementById('filter-skill').addEventListener('change', renderRoles);
     document.getElementById('filter-metro').addEventListener('change', renderRoles);
 
     checkSession().then((ok) => { if (ok) loadAll(); });
