@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
+import fs from 'fs';
 import { execSync } from 'child_process';
 import { openDb, all, run, get } from '../database/db.js';
 import { runDeepScan } from '../agents/orchestrator.js';
@@ -63,6 +64,16 @@ app.get('/health', (req, res) => {
 });
 
 app.use(express.static(path.resolve('./public')));
+
+app.get('/profile', requireUser, (req, res) => {
+  const profilePath = path.resolve('./docs/brother_profile.json');
+  try {
+    const profile = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+    res.json(profile);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load profile' });
+  }
+});
 
 app.get('/opportunities', requireUser, validateOpportunityQuery, withDb(async (db, req, res, done) => {
   const { channel, offbeat, min_score } = req.query;
@@ -204,9 +215,10 @@ app.post('/scan/run', strictWriteLimiter, requireUser, async (req, res) => {
     });
 });
 
-app.get('/scan/status', requireUser, (req, res) => {
-  res.json({ scanInProgress, lastScanResult });
-});
+app.get('/scan/status', requireUser, withDb(async (db, req, res, done) => {
+  const lastLog = await get(db, `SELECT * FROM scan_logs ORDER BY scanned_at DESC LIMIT 1`);
+  res.json({ scanInProgress, lastScanResult, lastLog });
+}));
 
 app.listen(PORT, () => {
   console.log(`🚀 Career Hub API running at http://localhost:${PORT}`);

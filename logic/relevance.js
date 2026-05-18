@@ -1,48 +1,43 @@
 import fs from 'fs';
 import path from 'path';
 
-const profilePath = path.resolve('./docs/brother_profile.json');
-const profile = JSON.parse(fs.readFileSync(profilePath, 'utf-8'));
-
-const TECH = [
-  'pscad', 'matlab', 'simulink', 'autocad', 'power system', 'protection', 'switchgear',
-  'solar', 'substation', 'sld', 'commissioning', 'renewable', 'grid', 'etap',
-  'digsilent', 'powerfactory', 'transient', 'harmonics', 'insulation coordination',
-];
-const COMMERCIAL = [
-  'contract', 'sap', 'billing', 'boq', 'vendor', 'project controls',
-  'cost manager', 'service order', 'ld', 'closure', 'procurement', 'tendering',
-  'bidding', 'estimation', 'invoice', 'claims', 'amendment',
-];
-const LOCATIONS = (profile.locations || []).map((l) => l.toLowerCase());
-const SECTORS = (profile.target_sectors || []).map((s) => s.toLowerCase());
-const TARGET_ROLES = (profile.target_roles || []).map((r) => r.toLowerCase());
+function getProfile() {
+  const profilePath = path.resolve('./docs/brother_profile.json');
+  return JSON.parse(fs.readFileSync(profilePath, 'utf-8'));
+}
 
 export function scoreOpportunity({ role_title = '', notes = '', sector = '', location = '', company_name = '' }) {
+  const profile = getProfile();
+  const techSkills = (profile.technical_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
+  const commSkills = (profile.commercial_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
+  const locations = (profile.locations || []).map(l => l.toLowerCase());
+  const sectors = (profile.target_sectors || []).map(s => s.toLowerCase());
+  const targetRoles = (profile.target_roles || []).map(r => r.toLowerCase());
+
   const text = `${role_title} ${notes} ${sector} ${location} ${company_name}`.toLowerCase();
   let score = 0.1;
   const reasons = [];
 
-  const techMatches = TECH.filter((k) => text.includes(k));
+  const techMatches = techSkills.filter((k) => text.includes(k));
   if (techMatches.length > 0) {
     score += Math.min(0.4, 0.2 + techMatches.length * 0.05);
     reasons.push(`tech:${techMatches[0]}`);
   }
 
-  const commMatches = COMMERCIAL.filter((k) => text.includes(k));
+  const commMatches = commSkills.filter((k) => text.includes(k));
   if (commMatches.length > 0) {
     score += Math.min(0.4, 0.2 + commMatches.length * 0.05);
     reasons.push(`comm:${commMatches[0]}`);
   }
-  if (LOCATIONS.some((l) => text.includes(l)) || /gujarat|ahmedabad|vadodara/i.test(text)) {
+  if (locations.some((l) => text.includes(l)) || /gujarat|ahmedabad|vadodara/i.test(text)) {
     score += 0.2;
     reasons.push('location_match');
   }
-  if (SECTORS.some((s) => text.includes(s.split(' ')[0]))) {
+  if (sectors.some((s) => text.includes(s.split(' ')[0]))) {
     score += 0.15;
     reasons.push('sector_match');
   }
-  if (TARGET_ROLES.some((r) => text.includes(r.split('/')[0].trim().slice(0, 12)))) {
+  if (targetRoles.some((r) => text.includes(r.split('/')[0].trim().slice(0, 12)))) {
     score += 0.1;
     reasons.push('role_match');
   }
@@ -59,12 +54,14 @@ export function scoreOpportunity({ role_title = '', notes = '', sector = '', loc
 }
 
 export function matchesRoleKeywords(text) {
+  const profile = getProfile();
+  const techSkills = (profile.technical_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
+  const commSkills = (profile.commercial_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
+
   const t = text.toLowerCase();
   const keys = [
-    ...TECH, ...COMMERCIAL, 'engineer', 'manager', 'coordinator', 'administrator',
+    ...techSkills, ...commSkills, 'engineer', 'manager', 'coordinator', 'administrator',
     'consultant', 'hiring', 'vacancy', 'opening', 'commissioning', 'epc',
   ];
   return keys.some((k) => t.includes(k));
 }
-
-export { TECH, COMMERCIAL };
