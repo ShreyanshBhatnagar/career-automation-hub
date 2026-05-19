@@ -1,4 +1,4 @@
-import { fetchPage, stripHtml, extractLines } from '../lib/fetch.js';
+import { smartFetch, stripHtml, extractLines } from '../lib/fetch.js';
 import { roleFromSnippet, upsertOpportunity } from '../lib/persist.js';
 
 export async function scanUrlList(ctx, items, opts = {}) {
@@ -8,9 +8,10 @@ export async function scanUrlList(ctx, items, opts = {}) {
   for (const item of items) {
     const url = item.url;
     const started = Date.now();
-    ctx.log(`Scanning ${item.name || url}`);
+    const fetchType = item.type || opts.fetch_type || 'basic';
+    ctx.log(`Scanning ${item.name || url} [${fetchType}]`);
 
-    const page = await fetchPage(url);
+    const page = await smartFetch(url, { type: fetchType });
     const status = page.ok ? 'Success' : 'Failed';
     const details = page.ok
       ? `Fetched ${page.html.length} bytes from ${page.final_url}`
@@ -62,7 +63,7 @@ export async function scanUrlList(ctx, items, opts = {}) {
       source_name: item.name || url,
       source_channel: item.channel || opts.channel,
       url_scanned: url,
-      status,
+      status: `${status} (${page.fetcher || 'basic'})`,
       findings_count: found,
       details,
       duration_ms: Date.now() - started,
