@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { stealthFetch } from './stealth_fetcher.js';
 
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -86,6 +87,9 @@ export async function playwrightFetch(url, timeoutMs = 30000) {
 export async function smartFetch(url, options = {}) {
   const { type = 'basic', timeout } = options;
 
+  if (type === 'stealth') {
+    return stealthFetch(url, options);
+  }
   if (type === 'headless' || type === 'playwright') {
     return playwrightFetch(url, timeout);
   }

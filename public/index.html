@@ -198,7 +198,13 @@
       <div id="mapper-viz" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.5rem"></div>
     </section>
     <section class="panel" id="panel-audit">
-      <h2 style="font-size:0.95rem;margin-bottom:0.5rem">Where we scanned</h2>
+      <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h2 style="font-size:0.95rem;">Where we scanned</h2>
+        <div class="filters" style="margin-bottom:0; gap: 1rem;">
+          <input type="text" id="audit-search" placeholder="Search logs..." style="width: 180px; font-size: 0.75rem;" />
+          <select id="audit-filter-status" style="font-size: 0.75rem;"><option value="">All statuses</option><option value="ok">Success</option><option value="fail">Failed</option></select>
+        </div>
+      </div>
       <div class="audit-grid" id="audit-grid"></div>
       <div id="audit-table-wrap"></div>
     </section>
@@ -459,17 +465,27 @@
       `).join('') : '<div class="empty">Run a scan to see per-source breakdown.</div>';
     }
 
-    async function loadAuditLogs() {
-      const res = await api('/scan-logs');
-      const logs = await res.json();
+    let allLogs = [];
+    function renderAuditTable() {
+      const query = (document.getElementById('audit-search')?.value || '').toLowerCase();
+      const statusFilter = document.getElementById('audit-filter-status')?.value;
       const wrap = document.getElementById('audit-table-wrap');
-      if (!logs.length) {
-        wrap.innerHTML = '';
+
+      const filtered = allLogs.filter(l => {
+        if (statusFilter === 'ok' && !/success|indexed/i.test(l.status)) return false;
+        if (statusFilter === 'fail' && !/fail/i.test(l.status)) return false;
+        const text = `${l.source_name} ${l.source_channel} ${l.status} ${l.details}`.toLowerCase();
+        return !query || text.includes(query);
+      });
+
+      if (!filtered.length) {
+        wrap.innerHTML = '<div class="empty">No logs match filters.</div>';
         return;
       }
+
       wrap.innerHTML = `<table><thead><tr>
         <th>Time</th><th>Source</th><th>Channel</th><th>Status</th><th>Found</th><th>URL</th><th>Details</th>
-      </tr></thead><tbody>${logs.map((l) => {
+      </tr></thead><tbody>${filtered.map((l) => {
         const st = /fail/i.test(l.status) ? 'status-fail' : /success|indexed/i.test(l.status) ? 'status-ok' : 'status-warn';
         return `<tr>
           <td>${l.scanned_at ? new Date(l.scanned_at).toLocaleString() : '—'}</td>
@@ -481,6 +497,12 @@
           <td style="font-size:0.72rem;color:var(--muted)">${esc(l.details)}</td>
         </tr>`;
       }).join('')}</tbody></table>`;
+    }
+
+    async function loadAuditLogs() {
+      const res = await api('/scan-logs');
+      allLogs = await res.json();
+      renderAuditTable();
     }
 
     async function loadProfile() {
@@ -572,6 +594,8 @@
     document.getElementById('filter-exp').addEventListener('change', renderRoles);
     document.getElementById('filter-sector').addEventListener('change', renderRoles);
     document.getElementById('filter-metro').addEventListener('change', renderRoles);
+    document.getElementById('audit-search').addEventListener('input', renderAuditTable);
+    document.getElementById('audit-filter-status').addEventListener('change', renderAuditTable);
 
     checkSession().then((ok) => { if (ok) loadAll(); });
   </script>

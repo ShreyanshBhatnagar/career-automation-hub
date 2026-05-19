@@ -8,39 +8,46 @@ function getProfile() {
 
 export function scoreOpportunity({ role_title = '', notes = '', description = '', requirements = '', sector = '', location = '', company_name = '' }) {
   const profile = getProfile();
-  const techSkills = (profile.technical_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
-  const commSkills = (profile.commercial_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
-  const locations = (profile.locations || []).map(l => l.toLowerCase());
-  const sectors = (profile.target_sectors || []).map(s => s.toLowerCase());
-  const targetRoles = (profile.target_roles || []).map(r => r.toLowerCase());
+
+  // V3 Skill Mapping
+  const techNodes = (profile.technical_nodes || []).map(s => s.toLowerCase());
+  const leveragePoints = (profile.leverage_points || []);
+  const allAtomicSkills = leveragePoints.flatMap(p => p.atomic_skills).map(s => s.toLowerCase());
+  const allTransferable = leveragePoints.flatMap(p => p.transferable_leverage).map(s => s.toLowerCase());
+
+  const targetSectors = (profile.target_arbitrage_sectors || []).map(s => s.toLowerCase());
 
   const text = `${role_title} ${notes} ${description} ${requirements} ${sector} ${location} ${company_name}`.toLowerCase();
   let score = 0.1;
   const reasons = [];
 
-  const techMatches = techSkills.filter((k) => text.includes(k));
+  const techMatches = techNodes.filter((k) => text.includes(k.split(' ')[0]));
   if (techMatches.length > 0) {
-    score += Math.min(0.4, 0.2 + techMatches.length * 0.05);
-    reasons.push(`tech:${techMatches[0]}`);
+    score += Math.min(0.3, 0.1 + techMatches.length * 0.05);
+    reasons.push(`node:${techMatches[0]}`);
   }
 
-  const commMatches = commSkills.filter((k) => text.includes(k));
-  if (commMatches.length > 0) {
-    score += Math.min(0.4, 0.2 + commMatches.length * 0.05);
-    reasons.push(`comm:${commMatches[0]}`);
+  const atomicMatches = allAtomicSkills.filter((k) => text.includes(k.toLowerCase()));
+  if (atomicMatches.length > 0) {
+    score += Math.min(0.4, 0.2 + atomicMatches.length * 0.05);
+    reasons.push(`atomic:${atomicMatches[0]}`);
   }
-  if (locations.some((l) => text.includes(l)) || /gujarat|ahmedabad|vadodara/i.test(text)) {
+
+  const transferMatches = allTransferable.filter((k) => text.includes(k.toLowerCase()));
+  if (transferMatches.length > 0) {
     score += 0.2;
-    reasons.push('location_match');
+    reasons.push(`arbitrage:${transferMatches[0]}`);
   }
-  if (sectors.some((s) => text.includes(s.split(' ')[0]))) {
+
+  if (targetSectors.some((s) => text.includes(s.split(' ')[0]))) {
     score += 0.15;
     reasons.push('sector_match');
   }
-  if (targetRoles.some((r) => text.includes(r.split('/')[0].trim().slice(0, 12)))) {
-    const isLeadership = /founder|chief|leadership|lead|manager|head/i.test(text);
-    score += isLeadership ? 0.25 : 0.1;
-    reasons.push('role_match');
+
+  const isLeadership = /founder|chief|leadership|lead|manager|head/i.test(text);
+  if (isLeadership) {
+    score += 0.15;
+    reasons.push('leadership_match');
   }
 
   const isOffbeat =

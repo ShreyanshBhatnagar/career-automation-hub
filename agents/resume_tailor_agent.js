@@ -27,7 +27,7 @@ class ResumeTailorAgent extends BaseAgent {
         }
 
         this.log(`Generated Pitch: ${pitch}`);
-        return { pitch, targeted_skills: profile.technical_skills };
+        return { pitch, targeted_skills: profile.technical_nodes || [] };
     }
 }
 
