@@ -6,7 +6,7 @@ function getProfile() {
   return JSON.parse(fs.readFileSync(profilePath, 'utf-8'));
 }
 
-export function scoreOpportunity({ role_title = '', notes = '', sector = '', location = '', company_name = '' }) {
+export function scoreOpportunity({ role_title = '', notes = '', description = '', requirements = '', sector = '', location = '', company_name = '' }) {
   const profile = getProfile();
   const techSkills = (profile.technical_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
   const commSkills = (profile.commercial_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
@@ -14,7 +14,7 @@ export function scoreOpportunity({ role_title = '', notes = '', sector = '', loc
   const sectors = (profile.target_sectors || []).map(s => s.toLowerCase());
   const targetRoles = (profile.target_roles || []).map(r => r.toLowerCase());
 
-  const text = `${role_title} ${notes} ${sector} ${location} ${company_name}`.toLowerCase();
+  const text = `${role_title} ${notes} ${description} ${requirements} ${sector} ${location} ${company_name}`.toLowerCase();
   let score = 0.1;
   const reasons = [];
 

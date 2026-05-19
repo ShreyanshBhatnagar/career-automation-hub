@@ -11,6 +11,8 @@ const MIGRATIONS = [
   `ALTER TABLE scan_logs ADD COLUMN url_scanned TEXT`,
   `ALTER TABLE scan_logs ADD COLUMN duration_ms INTEGER`,
   `ALTER TABLE scan_logs ADD COLUMN session_id TEXT`,
+  `ALTER TABLE opportunities ADD COLUMN description TEXT`,
+  `ALTER TABLE opportunities ADD COLUMN requirements TEXT`,
 ];
 
 async function migrate() {

@@ -56,6 +56,21 @@
     .audit-card strong { display: block; color: var(--text); margin-bottom: 0.2rem; }
     .empty { text-align: center; padding: 2rem; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; }
     a { color: var(--accent); }
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none;
+      align-items: center; justify-content: center; z-index: 200; padding: 1.5rem;
+    }
+    .modal.show { display: flex; }
+    .modal-content {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; position: relative;
+    }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; cursor: pointer; font-size: 1.5rem; color: var(--muted); }
+    .modal-content h2 { margin-bottom: 0.5rem; color: var(--accent); }
+    .modal-content .meta { display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+    .modal-content .section { margin-bottom: 1.5rem; }
+    .modal-content .section h3 { font-size: 0.9rem; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+    .modal-content .body { font-size: 0.9rem; white-space: pre-wrap; color: var(--text); }
     .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; align-items: center; }
     .filters label { font-size: 0.75rem; color: var(--muted); }
     #login-overlay {
@@ -151,6 +166,33 @@
     <section class="panel active" id="panel-roles">
       <div id="roles-table-wrap"></div>
     </section>
+
+    <div id="role-modal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <h2 id="modal-title">Role Title</h2>
+        <div class="meta">
+          <span id="modal-company">Company</span>
+          <span id="modal-location">Location</span>
+          <span id="modal-score">Score</span>
+        </div>
+        <div class="section">
+          <h3>Requirements / Skills</h3>
+          <div class="body" id="modal-requirements"></div>
+        </div>
+        <div class="section">
+          <h3>Description / Context</h3>
+          <div class="body" id="modal-description"></div>
+        </div>
+        <div class="section" id="modal-notes-section">
+          <h3>Discovery Notes</h3>
+          <div class="body" id="modal-notes" style="font-size:0.8rem;color:var(--muted)"></div>
+        </div>
+        <div style="margin-top: 2rem">
+          <a id="modal-link" href="#" target="_blank" class="primary" style="display:inline-block;padding:0.6rem 1.2rem;background:var(--accent);color:#0a0e14;border-radius:6px;text-decoration:none;font-weight:600">Apply / View Source</a>
+        </div>
+      </div>
+    </div>
     <section class="panel" id="panel-mapper">
       <h2 style="font-size:0.95rem;margin-bottom:1rem">Skill Applicability Map</h2>
       <div id="mapper-viz" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.5rem"></div>
@@ -261,23 +303,54 @@
       return 'lo';
     }
 
+    function openRole(id) {
+      const r = allRoles.find(x => x.id == id);
+      if (!r) return;
+      document.getElementById('modal-title').textContent = r.role_title;
+      document.getElementById('modal-company').textContent = r.company_name;
+      document.getElementById('modal-location').textContent = r.location || 'Remote/India';
+      document.getElementById('modal-score').textContent = `Score: ${r.relevance_score}`;
+
+      const descEl = document.getElementById('modal-description');
+      const reqEl = document.getElementById('modal-requirements');
+
+      if (r.description && r.description.includes('<')) {
+        descEl.innerHTML = r.description;
+      } else {
+        descEl.textContent = r.description || 'No detailed description available.';
+      }
+
+      if (r.requirements && r.requirements.includes('<')) {
+        reqEl.innerHTML = r.requirements;
+      } else {
+        reqEl.textContent = r.requirements || 'Check source for requirements.';
+      }
+
+      document.getElementById('modal-notes').textContent = r.notes || '';
+      document.getElementById('modal-link').href = r.source_url || '#';
+      document.getElementById('role-modal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('role-modal').classList.remove('show');
+    }
+
     function roleRow(r) {
-      const link = r.source_url ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener" style="word-break:break-all;font-size:0.7rem">${esc(r.source_url)}</a>` : '—';
       const posted = r.posted_at ? new Date(r.posted_at).toLocaleDateString() : '—';
-      const expMatch = (r.notes || '' + r.role_title).match(/(\d+)\+?\s*years?/i);
+      const expMatch = ((r.notes || '') + (r.role_title || '') + (r.description || '')).match(/(\d+)\+?\s*years?/i);
       const exp = expMatch ? expMatch[0] : '—';
 
-      return `<tr>
+      return `<tr onclick="openRole(${r.id})" style="cursor:pointer">
         <td class="score ${scoreClass(r.relevance_score || 0)}">${r.relevance_score != null ? Number(r.relevance_score).toFixed(2) : '—'}</td>
         <td>${chBadge(r.source_channel)}${r.is_offbeat ? '<span class="offbeat">◆ hidden</span>' : ''}</td>
-        <td>${esc(r.company_name)}</td>
+        <td><strong>${esc(r.company_name)}</strong></td>
         <td>${esc(r.role_title)}</td>
         <td>${esc(r.location || '—')}</td>
         <td>${posted}</td>
         <td>${exp}</td>
         <td>${esc(r.sector || '—')}</td>
-        <td style="max-width:200px;font-size:0.72rem;color:var(--muted)">${esc((r.notes || '').slice(0, 120))}</td>
-        <td>${link}</td>
+        <td style="max-width:200px;font-size:0.72rem;color:var(--muted)">${esc((r.description || r.notes || '').slice(0, 100))}...</td>
+        <td><a href="${esc(r.source_url)}" onclick="event.stopPropagation()" target="_blank" rel="noopener">Link</a></td>
       </tr>`;
     }
 

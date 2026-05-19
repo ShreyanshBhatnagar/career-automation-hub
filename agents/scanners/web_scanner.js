@@ -18,28 +18,40 @@ export async function scanUrlList(ctx, items, opts = {}) {
 
     if (page.ok) {
       const text = stripHtml(page.html);
-      const lines = extractLines(text);
+      const lines = extractLines(text, 20, 500); // Increased max len to capture context
 
       // Look for specific job links in the HTML
       const linkRegex = /href=["'](https?:\/\/[^"']*(?:job|vacancy|career|opening)[^"']*)["']/gi;
-      const sublinks = [...page.html.matchAll(linkRegex)].map(m => m[1]).slice(0, 5);
+      const sublinks = [...page.html.matchAll(linkRegex)].map(m => m[1]).slice(0, 10);
 
-      for (const line of lines) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
         const role = roleFromSnippet(line, item.company || item.name);
         if (!role) continue;
+
+        // Contextual extraction: capture surrounding lines as description/requirements
+        const context = lines.slice(Math.max(0, i - 1), i + 4).join('\n');
+        const requirementsMatch = context.match(/(?:Requirements|Skills|Qualification|Experience):?\s*([\s\S]{20,500})/i);
+        const description = context.slice(0, 1000);
+
+        // Metro city detection
+        const metros = ['Mumbai', 'Delhi', 'Bangalore', 'Bengaluru', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Pune', 'Surat', 'Gurgaon', 'Noida'];
+        const detectedLocation = metros.find(m => context.toLowerCase().includes(m.toLowerCase())) || item.location;
 
         // Try to find a more specific sublink for this role if it exists
         const bestUrl = sublinks.find(sl => sl.toLowerCase().includes(role.role_title.toLowerCase().split(' ')[0])) || url;
 
         await upsertOpportunity(ctx.db, ctx.run, {
           ...role,
+          description,
+          requirements: requirementsMatch ? requirementsMatch[1] : '',
+          location: detectedLocation,
           source_url: bestUrl === url ? `${url}#${encodeURIComponent(role.role_title.slice(0, 40))}` : bestUrl,
           source_channel: item.channel || opts.channel,
           source_type,
           is_offbeat: offbeat ? 1 : 0,
           notes: `Discovered on ${item.name}. ${details}`,
           scan_session_id: ctx.sessionId,
-          location: item.location,
           sector: item.sector || 'Renewables',
         });
         found++;
