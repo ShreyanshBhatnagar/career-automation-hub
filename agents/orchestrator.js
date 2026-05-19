@@ -5,6 +5,7 @@ import { openDb, run, all } from '../database/db.js';
 import { scanUrlList } from './scanners/web_scanner.js';
 import { scanDuckDuckGo } from './scanners/duckduckgo_scanner.js';
 import { scanSocialChannels } from './scanners/social_scanner.js';
+import { scanSpecializedPlatforms } from './scanners/platform_scanner.js';
 
 const sourcesPath = path.resolve('./agents/sources.json');
 
@@ -66,6 +67,7 @@ export async function runDeepScan() {
   });
   totalFound += await scanSocialChannels(ctx, sources);
   totalFound += await scanDuckDuckGo(ctx, sources.duckduckgo_queries || []);
+  totalFound += await scanSpecializedPlatforms(ctx);
 
   const oppCount = await all(db, `SELECT COUNT(*) as c FROM opportunities`);
   const count = oppCount[0]?.c || 0;

@@ -101,9 +101,14 @@ app.post(
     const b = req.sanitized;
     const r = await run(
       db,
-      `INSERT INTO opportunities (company_name, role_title, sector, location, source_url, relevance_score, notes, source_channel, source_type, is_offbeat)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(source_url) DO UPDATE SET relevance_score=excluded.relevance_score, notes=excluded.notes, last_scanned_at=datetime('now')`,
+      `INSERT INTO opportunities (company_name, role_title, sector, location, source_url, relevance_score, notes, description, requirements, source_channel, source_type, is_offbeat)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(source_url) DO UPDATE SET
+         relevance_score=excluded.relevance_score,
+         notes=excluded.notes,
+         description=excluded.description,
+         requirements=excluded.requirements,
+         last_scanned_at=datetime('now')`,
       [
         b.company_name,
         b.role_title,
@@ -112,6 +117,8 @@ app.post(
         b.source_url,
         b.relevance_score,
         b.notes,
+        b.description,
+        b.requirements,
         b.source_channel,
         b.source_type,
         b.is_offbeat,

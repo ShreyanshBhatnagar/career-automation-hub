@@ -7,12 +7,14 @@ export async function upsertOpportunity(db, run, row) {
   const sql = `
     INSERT INTO opportunities (
       company_name, role_title, sector, location, source_url, relevance_score,
-      notes, status, source_channel, source_type, is_offbeat, raw_snippet,
+      notes, description, requirements, status, source_channel, source_type, is_offbeat, raw_snippet,
       last_scanned_at, scan_session_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'New', ?, ?, ?, ?, datetime('now'), ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', ?, ?, ?, ?, datetime('now'), ?)
     ON CONFLICT(source_url) DO UPDATE SET
       relevance_score = excluded.relevance_score,
       notes = excluded.notes,
+      description = excluded.description,
+      requirements = excluded.requirements,
       last_scanned_at = datetime('now'),
       scan_session_id = excluded.scan_session_id,
       is_offbeat = excluded.is_offbeat,
@@ -27,6 +29,8 @@ export async function upsertOpportunity(db, run, row) {
     source_url,
     scored.relevance_score,
     row.notes || scored.match_reasons.join(', '),
+    row.description || '',
+    row.requirements || '',
     row.source_channel,
     row.source_type || 'direct_job',
     row.is_offbeat ?? scored.is_offbeat,
