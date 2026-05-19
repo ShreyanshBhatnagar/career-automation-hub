@@ -1,35 +1,40 @@
 {
-  "name": "Brother",
-  "background": "Electrical Engineer with heavy on-site Solar & Substation experience.",
-  "target_roles": [
-    "PSCAD & MATLAB Simulations Engineer",
-    "Cost Manager / Project Controls",
-    "System Studies Engineer",
-    "Power System / Renewable Energy Consultant",
-    "Electrical Design Engineer",
-    "Project Coordinator / Monitoring Engineer",
-    "Contract Administrator",
-    "Founder's Office",
-    "Chief of Staff",
-    "Leadership for Young Employees"
+  "candidate": "The Brother",
+  "ontology_version": "3.0",
+  "leverage_points": [
+    {
+      "node": "Complex Project Implementation",
+      "atomic_skills": ["Vendor Negotiation", "Timeline Reconciliation", "Resource Allocation", "SAP/ERP Management"],
+      "transferable_leverage": ["SaaS Implementation", "FinTech Operations", "AI Infrastructure Deployment"]
+    },
+    {
+      "node": "Technical Field Reality",
+      "atomic_skills": ["High-Stakes Troubleshooting", "On-site Safety/Compliance", "Structural Engineering Fundamentals"],
+      "transferable_leverage": ["DeepTech Hardware Ops", "Renewables Growth", "Logistics Tech"]
+    },
+    {
+      "node": "Commercial Engineering",
+      "atomic_skills": ["Contract Reconciliation", "Service Order Amendments", "Profit Margin Protection"],
+      "transferable_leverage": ["Strategic Procurement", "Revenue Ops", "Venture Studio Operations"]
+    }
   ],
-  "technical_skills": [
-    "PSCAD (Fault analysis, Control Logic)",
-    "MATLAB (Renewable Energy, Power Electronics)",
-    "AutoCAD (3D, Electrical Machines)",
-    "SLD Interpretation",
-    "Power Systems (Protection & Switchgear)",
-    "Solar Power Plant Execution (AC/DC)"
+  "target_arbitrage_sectors": [
+    "AI Infrastructure",
+    "SaaS Implementation",
+    "DeepTech Operations",
+    "FinTech Strategic Ops",
+    "Founder's Office"
   ],
-  "commercial_skills": [
-    "Contract Administration (T&Cs, Service Items)",
-    "SAP (Service Order Analysis, Material Reservation)",
-    "Service Order Amendments (Time Extensions, Quantity)",
-    "BOQ Preparation",
-    "Vendor Management",
-    "Contract Closure (LD applicability, Work Completion Certs)"
+  "technical_nodes": [
+    "Electrical Engineering (Power Systems)",
+    "SAP ERP (Commercial Control)",
+    "Solar PV Design & Site Execution",
+    "Contractual Compliance"
   ],
-  "target_sectors": ["Solar", "Renewables", "Data Centers", "Transmission & Distribution (PSS)", "EPC", "SAP-IT", "Energy"],
-  "locations": ["Ahmedabad", "Vadodara", "Mumbai", "Pune", "Hyderabad", "Bangalore", "Delhi NCR"],
-  "target_companies": ["Adani Green", "Adani Energy Solutions", "AdaniConneX", "EPC Vendors", "Renewable Consultants"]
+  "vibe_nodes": [
+    "High-Stakes Resilience",
+    "Direct Communication",
+    "Owner's Mindset",
+    "Zero-to-One Execution"
+  ]
 }
