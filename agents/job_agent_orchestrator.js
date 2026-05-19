@@ -16,6 +16,7 @@ class JobAgentOrchestrator {
     this.agents = {
       tailor: new ResumeTailorAgent(),
     };
+    this.db = config.db;
     this.profilePath = path.resolve('./docs/brother_profile.json');
   }
 
@@ -33,6 +34,16 @@ class JobAgentOrchestrator {
 
     // 3. TAILOR PHASE: Neutralization
     const result = await this.neutralizeAndTailor(opp, critiques);
+
+    // Persist Tailored Pitch
+    if (this.db) {
+        const { run } = await import('../database/db.js');
+        await run(
+            this.db,
+            `UPDATE opportunities SET tailored_pitch = ? WHERE id = ?`,
+            [result.pitch, oppId]
+        );
+    }
 
     return {
       id: oppId,
@@ -85,6 +96,11 @@ class JobAgentOrchestrator {
   }
 
   async fetchOpportunity(id) {
+    if (this.db) {
+        const { all } = await import('../database/db.js');
+        const rows = await all(this.db, `SELECT * FROM opportunities WHERE id = ?`, [id]);
+        return rows[0];
+    }
     // Mock for verification
     return {
       id,
