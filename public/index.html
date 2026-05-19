@@ -184,6 +184,10 @@
           <h3>Description / Context</h3>
           <div class="body" id="modal-description"></div>
         </div>
+        <div class="section" id="modal-pitch-section" style="background: rgba(61,156,245,0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--accent); margin-bottom: 1.5rem;">
+          <h3 style="color:var(--accent)">V3 Tailored Pitch (Agent Output)</h3>
+          <div class="body" id="modal-pitch" style="font-style: italic; font-weight: 500;"></div>
+        </div>
         <div class="section" id="modal-notes-section">
           <h3>Discovery Notes</h3>
           <div class="body" id="modal-notes" style="font-size:0.8rem;color:var(--muted)"></div>
@@ -313,6 +317,15 @@
       const r = allRoles.find(x => x.id == id);
       if (!r) return;
       document.getElementById('modal-title').textContent = r.role_title;
+
+      const pitchEl = document.getElementById('modal-pitch');
+      const pitchSec = document.getElementById('modal-pitch-section');
+      if (r.tailored_pitch) {
+        pitchEl.textContent = r.tailored_pitch;
+        pitchSec.style.display = 'block';
+      } else {
+        pitchSec.style.display = 'none';
+      }
       document.getElementById('modal-company').textContent = r.company_name;
       document.getElementById('modal-location').textContent = r.location || 'Remote/India';
       document.getElementById('modal-score').textContent = `Score: ${r.relevance_score}`;

@@ -13,6 +13,7 @@ const MIGRATIONS = [
   `ALTER TABLE scan_logs ADD COLUMN session_id TEXT`,
   `ALTER TABLE opportunities ADD COLUMN description TEXT`,
   `ALTER TABLE opportunities ADD COLUMN requirements TEXT`,
+  `ALTER TABLE opportunities ADD COLUMN tailored_pitch TEXT`,
 ];
 
 async function migrate() {
