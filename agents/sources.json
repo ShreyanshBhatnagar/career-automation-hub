@@ -1,99 +1,71 @@
 {
   "career_portals": [
     { "name": "Adani Careers", "url": "https://www.adani.com/careers", "channel": "internal_careers", "company": "Adani Group" },
-    { "name": "Adani Green Energy", "url": "https://www.adanigreenenergy.com/careers", "channel": "internal_careers", "company": "Adani Green" },
     { "name": "Tata Power", "url": "https://www.tatapower.com/careers", "channel": "internal_careers", "company": "Tata Power" },
     { "name": "ReNew Power", "url": "https://www.renew.com/careers", "channel": "internal_careers", "company": "ReNew Power" },
     { "name": "Sterling & Wilson", "url": "https://www.sterlingandwilson.com/career", "channel": "internal_careers", "company": "Sterling & Wilson" },
-    { "name": "ACME Solar", "url": "https://acmesolar.in/careers/", "channel": "internal_careers", "company": "ACME Solar" },
-    { "name": "Suzlon", "url": "https://www.suzlon.com/careers", "channel": "internal_careers", "company": "Suzlon" },
     { "name": "L&T Power", "url": "https://www.larsentoubro.com/careers/", "channel": "internal_careers", "company": "L&T" },
     { "name": "Waaree Energies", "url": "https://waaree.com/careers", "channel": "internal_careers", "company": "Waaree" },
     { "name": "Vikram Solar", "url": "https://www.vikramsolar.com/careers/", "channel": "internal_careers", "company": "Vikram Solar" },
-    { "name": "Goldi Solar", "url": "https://goldisolar.com/careers/", "channel": "internal_careers", "company": "Goldi Solar" },
     { "name": "Jakson Group", "url": "https://www.jakson.com/careers", "channel": "internal_careers", "company": "Jakson" },
-    { "name": "Azure Power", "url": "https://www.azurepower.com/careers", "channel": "internal_careers", "company": "Azure Power" }
+    { "name": "Azure Power", "url": "https://www.azurepower.com/careers", "channel": "internal_careers", "company": "Azure Power" },
+    { "name": "Reliance New Energy", "url": "https://www.ril.com/Careers.aspx", "channel": "internal_careers", "company": "Reliance" },
+    { "name": "NTPC Careers", "url": "https://careers.ntpc.co.in/", "channel": "internal_careers", "company": "NTPC" }
   ],
   "hiring_boards": [
-    { "name": "Naukri Solar", "url": "https://www.naukri.com/solar-jobs", "channel": "hiring_site" },
-    { "name": "Indeed India PSCAD", "url": "https://in.indeed.com/jobs?q=PSCAD+engineer", "channel": "hiring_site" },
-    { "name": "Shine Renewables", "url": "https://www.shine.com/job-search/renewable-energy-jobs", "channel": "hiring_site" },
-    { "name": "Internshala MNRE", "url": "https://internshala.com/internships/renewable-energy-internship", "channel": "hiring_site" }
+    { "name": "Naukri Industrial", "url": "https://www.naukri.com/industrial-operations-jobs", "channel": "hiring_site" },
+    { "name": "Indeed India Infrastructure", "url": "https://in.indeed.com/jobs?q=infrastructure+project+manager", "channel": "hiring_site" },
+    { "name": "Shine Mega Projects", "url": "https://www.shine.com/job-search/mega-project-jobs", "channel": "hiring_site" }
   ],
   "tenders_and_signals": [
     { "name": "SECI Tenders", "url": "https://www.seci.co.in/tenders", "channel": "tender", "signal_type": "project_award" },
-    { "name": "MNRE Updates", "url": "https://mnre.gov.in/", "channel": "mnre", "signal_type": "policy_hiring" },
-    { "name": "Mercom India Solar", "url": "https://mercomindia.com/category/solar/", "channel": "news", "signal_type": "commissioning_news" },
-    { "name": "Power Line Magazine", "url": "https://www.powerline.net.in/", "channel": "news", "signal_type": "project_news" }
+    { "name": "MNRE Updates", "url": "https://mnre.gov.in/", "channel": "mnre", "signal_type": "policy_hiring" }
   ],
   "linkedin": {
     "channel": "linkedin",
     "search_urls": [
-      "https://www.linkedin.com/jobs/search/?keywords=PSCAD%20MATLAB%20Simulink%20ETAP%20engineer",
-      "https://www.linkedin.com/jobs/search/?keywords=Contract%20Administrator%20SAP%20BOQ%20EPC",
-      "https://www.linkedin.com/jobs/search/?keywords=Power%20Systems%20Protection%20Switchgear%20hiring",
-      "https://www.linkedin.com/jobs/search/?keywords=Solar%20Commissioning%20Engineer%20India",
-      "https://www.linkedin.com/jobs/search/?keywords=Project%20Controls%20Cost%20Manager%20Renewables",
-      "https://www.linkedin.com/jobs/search/?keywords=Electrical%20Design%20Engineer%20SLD%20AutoCAD",
-      "https://www.linkedin.com/jobs/search/?keywords=Renewable%20Energy%20Consultant%20Grid%20Studies"
-    ]
-  },
-  "instagram": {
-    "channel": "instagram",
-    "hashtags": ["#solarjobsindia", "#renewablehiring", "#epchiring", "#ahmedabadjobs", "#powerengineerjobs"],
-    "search_urls": [
-      "https://www.instagram.com/explore/tags/solarjobsindia/",
-      "https://www.instagram.com/explore/tags/renewablehiring/"
-    ]
-  },
-  "x_twitter": {
-    "channel": "x",
-    "search_urls": [
-      "https://x.com/search?q=hiring%20solar%20engineer%20Gujarat&f=live",
-      "https://x.com/search?q=PSCAD%20MATLAB%20hiring%20India&f=live",
-      "https://x.com/search?q=renewable%20commissioning%20vacancy&f=live"
-    ]
-  },
-  "facebook": {
-    "channel": "facebook",
-    "search_urls": [
-      "https://www.facebook.com/search/posts/?q=solar%20engineer%20hiring%20ahmedabad",
-      "https://www.facebook.com/search/posts/?q=renewable%20energy%20jobs%20gujarat"
+      "https://www.linkedin.com/jobs/search/?keywords=SAP%20Electrical%20Vendor%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=Substation%20Coordinator%20Semiconductor%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=Project%20Controls%20Energy%20Infrastructure%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=Contract%20Specialist%20Infrastructure%20Foundry%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=Data%20Center%20Power%20Infrastructure%20Hiring%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=EV%20Charging%20Infrastructure%20Deployment%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=Industrial%20Automation%20Site%20Manager%20Gujarat",
+      "https://www.linkedin.com/jobs/search/?keywords=Mega-Scale%20Energy%20Project%20Lead%20India",
+      "https://www.linkedin.com/jobs/search/?keywords=SAP%20Project%20Controls%20Industrial%20Foundry",
+      "https://www.linkedin.com/jobs/search/?keywords=High-Voltage%20Site%20Execution%20Data%20Center"
     ]
   },
   "duckduckgo_queries": [
-    "site:remoteok.com \"India\" hiring",
-    "site:hiring.cafe \"renewable energy\" India",
-    "site:mployee.me \"renewable energy\"",
-    "site:speedyapply.com \"PSCAD\" \"MATLAB\"",
-    "site:workatastartup.com \"renewable energy\" India",
-    "site:wellfound.com \"Founder's Office\" renewable energy India",
-    "site:ycombinator.com \"renewable energy\" jobs India",
-    "site:linkedin.com \"Founder's Office\" renewable energy India hiring",
-    "site:linkedin.com \"Chief of Staff\" EPC energy India hiring",
-    "site:wellfound.com \"Founder's Office\" energy startup India",
-    "site:ycombinator.com \"Chief of Staff\" renewable energy",
-    "PSCAD MATLAB engineer \"DM me\" India hiring",
-    "SAP Contract Administrator \"looking for\" EPC India hiring",
-    "site:darwinbox.in \"hiring\" renewable energy India",
-    "\"young leadership\" program renewable energy India",
-    "site:linkedin.com \"Chief of Staff\" SAP IT India",
-    "site:linkedin.com PSCAD MATLAB Simulink engineer hiring India",
-    "site:linkedin.com SAP Contract Administrator EPC Renewables India",
-    "site:naukri.com ETAP Power System Studies Engineer vacancy",
-    "site:indeed.com Solar Commissioning Engineer Mumbai Bangalore",
-    "site:glassdoor.co.in PSCAD Simulation Engineer Ahmedabad Vadodara",
-    "Renewable energy project controls manager hiring India",
-    "Electrical protection switchgear engineer vacancy Chennai Hyderabad",
-    "Cost Manager SAP Service Order renewable energy India",
-    "Grid integration studies engineer hiring PSCAD Digsilent",
-    "Substation design engineer SLD AutoCAD vacancy India",
-    "site:slack.com \"hiring\" PSCAD MATLAB renewable",
-    "site:discord.com \"hiring\" solar commissioning engineer",
-    "site:ycombinator.com \"hiring\" renewable energy startup India",
-    "site:wellfound.com \"hiring\" PSCAD engineer India",
-    "\"looking for\" PSCAD MATLAB engineer India post",
-    "\"hiring alert\" SAP Contract Administrator EPC India",
-    "\"DM for details\" PSCAD engineer vacancy India"
+    "site:remoteok.com \"Industrial Operations\" India",
+    "site:hiring.cafe \"Data Center Infrastructure\" India",
+    "site:mployee.me \"Semiconductor Foundry\"",
+    "site:speedyapply.com \"SAP\" \"Contract Specialist\"",
+    "site:workatastartup.com \"Industrial Automation\" India",
+    "site:wellfound.com \"Founder's Office\" Infrastructure India",
+    "site:ycombinator.com \"Data Center\" jobs India",
+    "site:linkedin.com \"Project Controls\" Semiconductor India hiring",
+    "site:linkedin.com \"Site Manager\" Data Center India hiring",
+    "site:wellfound.com \"Operations Lead\" Infrastructure India",
+    "SAP Electrical Vendor \"hiring\" India",
+    "Substation Coordinator Semiconductor \"vacancy\" India",
+    "Project Controls Energy \"opening\" India",
+    "Contract Specialist Infrastructure \"hiring\" India",
+    "site:darwinbox.in \"hiring\" Industrial Infrastructure India",
+    "site:linkedin.com \"Project Lead\" Semiconductor Foundry India",
+    "site:linkedin.com \"Operations Manager\" EV Infrastructure India",
+    "site:naukri.com \"SAP\" Infrastructure Project vacancy",
+    "site:indeed.com \"Data Center\" Power Systems Engineer India",
+    "site:glassdoor.co.in \"Industrial Automation\" Site Engineer India",
+    "\"Mundra\" Industrial Operations hiring",
+    "\"Dahej\" Mega Project vacancy",
+    "\"Sanand\" Semiconductor hiring",
+    "\"Hosur\" EV Infrastructure vacancy",
+    "\"Dholera\" Smart City infrastructure hiring",
+    "\"Gift City\" Infrastructure project lead",
+    "\"Sri City\" Industrial operations vacancy",
+    "\"Oragadam\" Industrial project manager",
+    "\"Bhiwadi\" Industrial infrastructure hiring",
+    "\"Pantnagar\" Mega project vacancy"
   ]
 }

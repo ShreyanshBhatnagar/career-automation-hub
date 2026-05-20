@@ -92,6 +92,11 @@ app.get('/opportunities', requireUser, validateOpportunityQuery, withDb(async (d
   done(null, await all(db, sql, params));
 }));
 
+app.get('/leads', requireUser, withDb(async (db, req, res, done) => {
+  const rows = await all(db, `SELECT * FROM lead_contacts ORDER BY created_at DESC`);
+  done(null, rows);
+}));
+
 app.post(
   '/opportunities',
   strictWriteLimiter,
