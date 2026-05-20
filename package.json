@@ -8,6 +8,8 @@
     "init-db": "node database/init_db.js && node database/migrate.js",
     "migrate": "node database/migrate.js",
     "scan": "node agents/orchestrator.js",
+    "worker:ingest": "node agents/worker.js",
+    "worker:agent": "node agents/agent_worker.js",
     "security:scan": "node scripts/scan-secrets.js"
   },
   "dependencies": {
