@@ -1,5 +1,5 @@
 import { smartFetch, stripHtml, extractLines } from '../lib/fetch.js';
-import { roleFromSnippet, upsertOpportunity } from '../lib/persist.js';
+import { roleFromSnippet, upsertOpportunity, upsertContact } from '../lib/persist.js';
 
 export async function scanUrlList(ctx, items, opts = {}) {
   const { source_type = 'direct_job', offbeat = false } = opts;
@@ -21,14 +21,36 @@ export async function scanUrlList(ctx, items, opts = {}) {
       const text = stripHtml(page.html);
       const lines = extractLines(text, 20, 500); // Increased max len to capture context
 
+      // CONTACT SCRAPING: Parse for industry professionals
+      const contactRegex = /(?:Director|Head|Manager|Lead|Founder|Procurement|Delivery)\s+(?:of\s+)?([^|\-\n,]{3,30})(?:\s+[|\-]\s+([^|\-\n,]{3,30}))?/gi;
+      const profileLinkRegex = /href=["'](https?:\/\/(?:www\.)?linkedin\.com\/in\/[^"']+)["']/gi;
+
+      const potentialContacts = [...text.matchAll(contactRegex)];
+      const profileLinks = [...page.html.matchAll(profileLinkRegex)].map(m => m[1]);
+
+      for (let i = 0; i < Math.min(potentialContacts.length, profileLinks.length); i++) {
+        const contactMatch = potentialContacts[i];
+        await upsertContact(ctx.db, ctx.run, {
+          company_name: item.company || item.name || 'Unknown',
+          person_name: contactMatch[1].trim(),
+          designation: contactMatch[0].trim(),
+          profile_url: profileLinks[i],
+          source_platform: profileLinks[i].includes('linkedin.com') ? 'LinkedIn' : 'Web',
+          inferred_connection_reason: `Target Lead for ${item.sector || 'Industrial Sector'}`
+        });
+      }
+
       // Look for specific job links in the HTML
       const linkRegex = /href=["'](https?:\/\/[^"']*(?:job|vacancy|career|opening)[^"']*)["']/gi;
       const sublinks = [...page.html.matchAll(linkRegex)].map(m => m[1]).slice(0, 10);
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const role = roleFromSnippet(line, item.company || item.name);
-        if (!role) continue;
+        const role = roleFromSnippet(line, item.company || item.name) || {
+          role_title: line.slice(0, 100),
+          company_name: item.company || item.name || 'Unknown',
+          relevance_score: 0.1
+        };
 
         // Contextual extraction: capture surrounding lines as description/requirements
         const context = lines.slice(Math.max(0, i - 1), i + 4).join('\n');

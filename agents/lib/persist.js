@@ -40,6 +40,26 @@ export async function upsertOpportunity(db, run, row) {
   return { source_url, scored };
 }
 
+export async function upsertContact(db, run, contact) {
+  const sql = `
+    INSERT INTO lead_contacts (
+      company_name, person_name, designation, profile_url, source_platform, inferred_connection_reason
+    ) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(profile_url) DO UPDATE SET
+      designation = excluded.designation,
+      inferred_connection_reason = excluded.inferred_connection_reason
+  `;
+
+  await run(db, sql, [
+    contact.company_name,
+    contact.person_name,
+    contact.designation,
+    contact.profile_url,
+    contact.source_platform || 'LinkedIn',
+    contact.inferred_connection_reason || 'Found via industrial sector scan'
+  ]);
+}
+
 export function roleFromSnippet(snippet, company = 'Unknown') {
   if (!matchesRoleKeywords(snippet)) return null;
   const title = snippet.slice(0, 120).replace(/\s+/g, ' ').trim();

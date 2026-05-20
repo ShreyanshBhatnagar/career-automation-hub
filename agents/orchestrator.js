@@ -87,7 +87,8 @@ export async function runDeepScan() {
     // Post-process with JobAgentOrchestrator for arbitrage roles
     ctx.log('--- Triggering V3 Red Teaming Loop ---');
     const agent = new JobAgentOrchestrator({ db });
-    const arbitrageRoles = await all(db, `SELECT id FROM opportunities WHERE scan_session_id = ? AND relevance_score > 0.4`, [sessionId]);
+  // Process EVERYTHING in Track B or high-score in Track A to ensure deep analysis on the raw stream
+  const arbitrageRoles = await all(db, `SELECT id FROM opportunities WHERE scan_session_id = ? AND (relevance_score > 0.1 OR source_channel != 'internal_careers')`, [sessionId]);
     for (const row of arbitrageRoles) {
         await agent.processOpportunity(row.id);
     }

@@ -128,6 +128,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="roles">Live Feed</button>
       <button class="tab" data-tab="mapper">Resume-Skill Mapper</button>
+      <button class="tab" data-tab="leads">Target Network Leads</button>
       <button class="tab" data-tab="audit">Scan audit trail</button>
     </div>
 
@@ -200,6 +201,14 @@
     <section class="panel" id="panel-mapper">
       <h2 style="font-size:0.95rem;margin-bottom:1rem">Skill Applicability Map</h2>
       <div id="mapper-viz" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.5rem"></div>
+    </section>
+
+    <section class="panel" id="panel-leads">
+      <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size:0.95rem;">Target Network Leads (Lala Companies & Industry Powerhouses)</h2>
+        <input type="text" id="leads-search" placeholder="Search people, companies, titles..." style="width: 240px; font-size: 0.85rem;" />
+      </div>
+      <div id="leads-table-wrap"></div>
     </section>
     <section class="panel" id="panel-audit">
       <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -553,11 +562,47 @@
       }
     }
 
+    let allLeads = [];
+    async function loadLeads() {
+      const res = await api('/leads');
+      allLeads = await res.json();
+      renderLeads();
+    }
+
+    function renderLeads() {
+      const query = (document.getElementById('leads-search')?.value || '').toLowerCase();
+      const wrap = document.getElementById('leads-table-wrap');
+
+      const filtered = allLeads.filter(l => {
+        const text = `${l.person_name} ${l.company_name} ${l.designation}`.toLowerCase();
+        return !query || text.includes(query);
+      });
+
+      if (!filtered.length) {
+        wrap.innerHTML = '<div class="empty">No network leads found yet. These are captured during scans of industrial hubs and search results.</div>';
+        return;
+      }
+
+      wrap.innerHTML = `<table><thead><tr>
+        <th>Name</th><th>Designation</th><th>Company</th><th>Reason / Sector</th><th>Platform</th><th>Profile</th>
+      </tr></thead><tbody>${filtered.map(l => `
+        <tr>
+          <td><strong>${esc(l.person_name)}</strong></td>
+          <td>${esc(l.designation)}</td>
+          <td>${esc(l.company_name)}</td>
+          <td>${esc(l.inferred_connection_reason)}</td>
+          <td>${chBadge(l.source_platform)}</td>
+          <td><a href="${esc(l.profile_url)}" target="_blank">LinkedIn</a></td>
+        </tr>
+      `).join('')}</tbody></table>`;
+    }
+
     async function loadAll() {
       const [rolesRes, summaryRes] = await Promise.all([
         api('/opportunities'),
         api('/scan/summary'),
         loadProfile(),
+        loadLeads(),
       ]);
       allRoles = await rolesRes.json();
       const summary = await summaryRes.json();
@@ -609,6 +654,7 @@
     document.getElementById('filter-metro').addEventListener('change', renderRoles);
     document.getElementById('audit-search').addEventListener('input', renderAuditTable);
     document.getElementById('audit-filter-status').addEventListener('change', renderAuditTable);
+    document.getElementById('leads-search').addEventListener('input', renderLeads);
 
     checkSession().then((ok) => { if (ok) loadAll(); });
   </script>
