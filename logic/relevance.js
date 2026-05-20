@@ -63,13 +63,14 @@ export function scoreOpportunity({ role_title = '', notes = '', description = ''
 
 export function matchesRoleKeywords(text) {
   const profile = getProfile();
-  const techSkills = (profile.technical_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
-  const commSkills = (profile.commercial_skills || []).map(s => s.split('(')[0].trim().toLowerCase());
+  const techNodes = (profile.technical_nodes || []).map(s => s.toLowerCase());
+  const leveragePoints = (profile.leverage_points || []);
+  const allAtomicSkills = leveragePoints.flatMap(p => p.atomic_skills).map(s => s.toLowerCase());
 
   const t = text.toLowerCase();
   const keys = [
-    ...techSkills, ...commSkills, 'engineer', 'manager', 'coordinator', 'administrator',
-    'consultant', 'hiring', 'vacancy', 'opening', 'commissioning', 'epc',
+    ...techNodes, ...allAtomicSkills, 'engineer', 'manager', 'operations', 'plant', 'foundry',
+    'infrastructure', 'automation', 'commissioning', 'epc',
   ];
   return keys.some((k) => t.includes(k));
 }
