@@ -1,7 +1,7 @@
 import pkg from 'bullmq';
 const { Worker } = pkg;
 import { redisConnection } from './lib/queue.js';
-import { openDb, run } from '../database/db.js';
+import { openDb, run, get } from '../database/db.js';
 import { scanUrlList } from './scanners/web_scanner.js';
 import JobAgentOrchestrator from './job_agent_orchestrator.js';
 
@@ -46,6 +46,15 @@ const worker = new Worker('job-ingestion-queue', async (job) => {
         foundCount = await scanRemoteOK(ctx);
     } else {
         foundCount = await scanUrlList(ctx, [item], opts);
+    }
+
+    // RETRY LOGIC: If a high-stealth fetch failed due to rate limits or blocks
+    // we throw a specific error to trigger BullMQ's automatic retry backoff.
+    const lastScan = await get(db, `SELECT status, details FROM scan_logs WHERE session_id = ? ORDER BY scanned_at DESC LIMIT 1`, [sessionId]);
+    if (lastScan && (/429|blocked|timeout|fail/i.test(lastScan.details) || lastScan.status.includes('Failed'))) {
+        if (opts.fetch_type === 'proxy' || opts.fetch_type === 'stealth') {
+            throw new Error(`RETRY_REQUIRED: Ingestion blocked for ${item.url}. Backing off...`);
+        }
     }
 
     // 2. If Track B or high relevance, trigger agentic analysis

@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import { stealthFetch } from './stealth_fetcher.js';
+import { env } from '../../api/config/env.js';
 
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -84,9 +85,48 @@ export async function playwrightFetch(url, timeoutMs = 30000) {
  * FetcherFactory
  * Routes to the appropriate fetcher based on type or requirements
  */
+export async function proxiedSmartFetch(url, timeoutMs = 30000) {
+  const started = Date.now();
+  if (!env.SCRAPER_API_KEY) {
+    throw new Error('SCRAPER_API_KEY not configured');
+  }
+
+  const apiUrl = `${env.SCRAPER_API_URL}?api_key=${env.SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render_js=true`;
+
+  try {
+    const res = await fetch(apiUrl, { timeout: timeoutMs });
+    const html = res.ok ? await res.text() : '';
+    return {
+      ok: res.ok,
+      status: res.status,
+      html,
+      duration_ms: Date.now() - started,
+      final_url: url,
+      fetcher: 'proxy-service',
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      status: 0,
+      html: '',
+      duration_ms: Date.now() - started,
+      error: e.message,
+      final_url: url,
+      fetcher: 'proxy-service',
+    };
+  }
+}
+
+/**
+ * FetcherFactory
+ * Routes to the appropriate fetcher based on type or requirements
+ */
 export async function smartFetch(url, options = {}) {
   const { type = 'basic', timeout } = options;
 
+  if (type === 'proxy' || type === 'high_stealth') {
+    return proxiedSmartFetch(url, timeout);
+  }
   if (type === 'stealth') {
     return stealthFetch(url, options);
   }
