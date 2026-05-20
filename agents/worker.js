@@ -57,18 +57,7 @@ const worker = new Worker('job-ingestion-queue', async (job) => {
         }
     }
 
-    // 2. If Track B or high relevance, trigger agentic analysis
-    if (opts.track === 'B') {
-        const agent = new JobAgentOrchestrator({ db });
-        // We need to find the opportunities just created to process them
-        // In a production app, we'd pass IDs directly, but for now we query the session
-        const { all } = await import('../database/db.js');
-        const arbitrageRoles = await all(db, `SELECT id FROM opportunities WHERE scan_session_id = ? AND source_url LIKE ?`, [sessionId, `%${item.url}%`]);
-
-        for (const row of arbitrageRoles) {
-            await agent.processOpportunity(row.id);
-        }
-    }
+    // Evaluation is now handled asynchronously via evaluationQueue triggered in scanner/persist
 
     console.log(`[Worker] Job ${job.id} complete. Findings: ${foundCount}`);
   } catch (e) {

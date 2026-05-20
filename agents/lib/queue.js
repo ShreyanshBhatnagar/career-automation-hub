@@ -20,4 +20,16 @@ export const ingestionQueue = new Queue('job-ingestion-queue', {
   },
 });
 
+export const evaluationQueue = new Queue('agent-evaluation-queue', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
+    removeOnComplete: true,
+  },
+});
+
 export { redisConnection };

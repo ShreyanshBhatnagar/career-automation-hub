@@ -1,7 +1,6 @@
 import { scoreOpportunity, matchesRoleKeywords } from '../../logic/relevance.js';
 
 export async function upsertOpportunity(db, run, row) {
-  const scored = scoreOpportunity(row);
   const source_url = row.source_url || `generated://${row.scan_session_id}/${encodeURIComponent(row.role_title)}/${row.company_name}`;
 
   const sql = `
@@ -9,35 +8,32 @@ export async function upsertOpportunity(db, run, row) {
       company_name, role_title, sector, location, source_url, relevance_score,
       notes, description, requirements, status, source_channel, source_type, is_offbeat, raw_snippet,
       last_scanned_at, scan_session_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', ?, ?, ?, ?, datetime('now'), ?)
+    ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, 'Raw Ingested', ?, ?, ?, ?, datetime('now'), ?)
     ON CONFLICT(source_url) DO UPDATE SET
-      relevance_score = excluded.relevance_score,
       notes = excluded.notes,
       description = excluded.description,
       requirements = excluded.requirements,
       last_scanned_at = datetime('now'),
       scan_session_id = excluded.scan_session_id,
-      is_offbeat = excluded.is_offbeat,
       raw_snippet = excluded.raw_snippet
   `;
 
-  await run(db, sql, [
+  const result = await run(db, sql, [
     row.company_name,
     row.role_title,
     row.sector || 'Renewables',
     row.location || 'India',
     source_url,
-    scored.relevance_score,
-    row.notes || scored.match_reasons.join(', '),
+    row.notes || 'Awaiting V3 Agent evaluation...',
     row.description || '',
     row.requirements || '',
     row.source_channel,
     row.source_type || 'direct_job',
-    row.is_offbeat ?? scored.is_offbeat,
+    row.is_offbeat || 0,
     row.raw_snippet || '',
     row.scan_session_id,
   ]);
-  return { source_url, scored };
+  return { id: result.lastID, source_url };
 }
 
 export async function upsertContact(db, run, contact) {
