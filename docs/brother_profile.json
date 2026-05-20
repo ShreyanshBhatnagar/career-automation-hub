@@ -30,7 +30,10 @@
     "Electrical Engineering (Industrial Power)",
     "SAP ERP (Operational Control)",
     "Mega-Solar Site Execution",
-    "High-Voltage Compliance"
+    "High-Voltage Compliance",
+    "PSCAD",
+    "ETAP",
+    "MATLAB"
   ],
   "vibe_nodes": [
     "Industrial Resilience",
