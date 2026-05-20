@@ -70,27 +70,26 @@ class JobAgentOrchestrator {
     const critiques = [];
     const text = (opp.role_title + ' ' + opp.description).toLowerCase();
 
-    // Structural "Challenger" logic (simulated LLM crit)
-    if (!text.includes('solar') && !text.includes('electrical')) {
-      critiques.push("Candidate's industry background (Renewables/Power) is irrelevant to this high-growth sector.");
+    // Industrial Proximity "Challenger" logic
+    if (!text.includes('industrial') && !text.includes('infrastructure') && !text.includes('energy') && !text.includes('site')) {
+      critiques.push("Candidate background is heavily field-operational; this role appears too detached from hard-asset execution.");
     }
-    if (text.includes('saas') || text.includes('product')) {
-      critiques.push("Candidate lacks direct SaaS/Product metrics and lifecycle experience.");
+    if (text.includes('digital product') || text.includes('consumer')) {
+      critiques.push("Role focuses on digital/consumer assets; lacks the industrial scale and complexity the candidate thrives in.");
     }
     if (mapping.length < 1) {
-      critiques.push("No clear structural leverage found between field experience and this role.");
+      critiques.push("No structural overlap found between industrial site governance and this specific role's requirements.");
     }
 
     return critiques;
   }
 
   async neutralizeAndTailor(opp, critiques) {
-    // This calls Agent C (The Tailor) with the "Adversarial Prompt"
     const profile = JSON.parse(fs.readFileSync(this.profilePath, 'utf-8'));
 
-    // Prototype: We pick a high-leverage node to neutralize the industry gap
+    // Neutralize industrial gap by focusing on "Atomic Scale"
     const primaryNode = profile.leverage_points[0];
-    const pitch = `While my background is in energy infrastructure, I specialize in ${primaryNode.node}. Specifically, I neutralized ${critiques.length} operational risks in my previous role through ${primaryNode.atomic_skills[0]}, which directly maps to the high-stakes execution required here.`;
+    const pitch = `While this role represents an expansion into ${opp.sector || 'new industrial tracks'}, I specialize in ${primaryNode.node}—specifically managing a 50+ contractor workforce in high-stakes environments like the Ramgarh plant. I apply the same ${primaryNode.atomic_skills[0]} logic to neutralize operational bottlenecks in any hard-infrastructure project.`;
 
     return { pitch };
   }
@@ -101,12 +100,13 @@ class JobAgentOrchestrator {
         const rows = await all(this.db, `SELECT * FROM opportunities WHERE id = ?`, [id]);
         return rows[0];
     }
-    // Mock for verification
+    // Updated Mock for Industrial context
     return {
       id,
-      role_title: "Operations Lead - AI Infrastructure (SaaS)",
-      description: "We need someone to manage complex vendor reconciliations and resource allocation for our growing data center footprint. Requires SAP experience and high-stakes troubleshooting.",
-      requirements: "SaaS experience preferred. Background in scaling systems."
+      role_title: "Project Lead - Data Center Power Infrastructure",
+      description: "Oversee the implementation of high-voltage power systems for a new campus. Requires vendor reconciliation, resource allocation, and field site management experience.",
+      requirements: "10+ years in industrial operations or energy infrastructure.",
+      sector: "Data Center Infrastructure"
     };
   }
 }
