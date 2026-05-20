@@ -8,6 +8,8 @@ import fs from 'fs';
 import { execSync } from 'child_process';
 import { openDb, all, run, get } from '../database/db.js';
 import { runDeepScan } from '../agents/orchestrator.js';
+import ResumeTailorAgent from '../agents/resume_tailor_agent.js';
+import MessageDrafterAgent from '../agents/message_drafter_agent.js';
 import { env, assertProductionSecrets } from './config/env.js';
 import { globalRateLimiter, strictWriteLimiter } from './middleware/rateLimit.js';
 import {
@@ -95,6 +97,31 @@ app.get('/opportunities', requireUser, validateOpportunityQuery, withDb(async (d
 app.get('/leads', requireUser, withDb(async (db, req, res, done) => {
   const rows = await all(db, `SELECT * FROM lead_contacts ORDER BY created_at DESC`);
   done(null, rows);
+}));
+
+app.post('/api/opportunities/:id/tailor-resume', requireUser, withDb(async (db, req, res, done) => {
+  const id = req.params.id;
+  const opp = await get(db, `SELECT * FROM opportunities WHERE id = ?`, [id]);
+  if (!opp) return done(new Error('Opportunity not found'), null, 404);
+
+  const tailor = new ResumeTailorAgent();
+  const profilePath = path.resolve('./docs/brother_profile.json');
+  const markdown = await tailor.generateMarkdownBlock(opp.description || opp.role_title, profilePath, req.body);
+
+  await run(db, `UPDATE opportunities SET status = 'Reviewed' WHERE id = ?`, [id]);
+  done(null, { id, markdown, status: 'Success' });
+}));
+
+app.post('/api/opportunities/:id/draft-outreach', requireUser, withDb(async (db, req, res, done) => {
+  const id = req.params.id;
+  const opp = await get(db, `SELECT * FROM opportunities WHERE id = ?`, [id]);
+  if (!opp) return done(new Error('Opportunity not found'), null, 404);
+
+  const drafter = new MessageDrafterAgent();
+  const profilePath = path.resolve('./docs/brother_profile.json');
+  const message = await drafter.draftMessage(opp, profilePath);
+
+  done(null, { id, message, status: 'Drafted' });
 }));
 
 app.post(
