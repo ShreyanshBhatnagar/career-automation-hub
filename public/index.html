@@ -535,14 +535,14 @@
         const sectorSel = document.getElementById('filter-sector');
         const curSec = sectorSel.value;
         sectorSel.innerHTML = '<option value="">All sectors</option>';
-        (profile.target_sectors || []).forEach(s => {
+        (profile.target_arbitrage_sectors || []).forEach(s => {
           sectorSel.innerHTML += `<option value="${s.toLowerCase()}">${s}</option>`;
         });
         sectorSel.value = curSec;
 
         const viz = document.getElementById('mapper-viz');
-        const allSkills = [...(profile.technical_skills || []), ...(profile.commercial_skills || [])];
-        const sectors = profile.target_sectors || [];
+        const allSkills = [...(profile.technical_nodes || []), ...(profile.leverage_points || []).flatMap(p => p.atomic_skills)];
+        const sectors = profile.target_arbitrage_sectors || [];
 
         viz.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem">
           ${sectors.map(s => `

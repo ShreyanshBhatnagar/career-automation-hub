@@ -18,8 +18,8 @@ export async function scanUrlList(ctx, items, opts = {}) {
       : `HTTP ${page.status || 'error'}: ${page.error || 'blocked or unreachable'}`;
 
     if (page.ok) {
-      const text = stripHtml(page.html);
-      const lines = extractLines(text, 20, 500); // Increased max len to capture context
+      let text = stripHtml(page.html);
+      let lines = extractLines(text, 20, 500); // Increased max len to capture context
 
       // CONTACT SCRAPING: Parse for industry professionals
       const contactRegex = /(?:Director|Head|Manager|Lead|Founder|Procurement|Delivery)\s+(?:of\s+)?([^|\-\n,]{3,30})(?:\s+[|\-]\s+([^|\-\n,]{3,30}))?/gi;
@@ -79,6 +79,10 @@ export async function scanUrlList(ctx, items, opts = {}) {
         });
         found++;
       }
+      // Memory Optimization: Clear large string payloads
+      text = null;
+      lines = null;
+      if (page.html) page.html = '';
     }
 
     await ctx.logScan({

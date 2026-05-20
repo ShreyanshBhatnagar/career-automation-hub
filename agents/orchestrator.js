@@ -85,12 +85,19 @@ export async function runDeepScan() {
     bFound += await scanSpecializedPlatforms(ctx);
 
     // Post-process with JobAgentOrchestrator for arbitrage roles
-    ctx.log('--- Triggering V3 Red Teaming Loop ---');
+    ctx.log('--- Triggering V3 Red Teaming Loop (Sequential) ---');
     const agent = new JobAgentOrchestrator({ db });
-  // Process EVERYTHING in Track B or high-score in Track A to ensure deep analysis on the raw stream
-  const arbitrageRoles = await all(db, `SELECT id FROM opportunities WHERE scan_session_id = ? AND (relevance_score > 0.1 OR source_channel != 'internal_careers')`, [sessionId]);
+    const arbitrageRoles = await all(db, `SELECT id FROM opportunities WHERE scan_session_id = ? AND (relevance_score > 0.1 OR source_channel != 'internal_careers')`, [sessionId]);
+
+    let processedCount = 0;
     for (const row of arbitrageRoles) {
         await agent.processOpportunity(row.id);
+        processedCount++;
+        if (processedCount % 5 === 0 || processedCount === arbitrageRoles.length) {
+            ctx.log(`[Progress] Analyzed ${processedCount}/${arbitrageRoles.length} signals...`);
+        }
+        // Small throttle to allow event loop / GC breathing room
+        await ctx.sleep(100);
     }
 
     return bFound;
