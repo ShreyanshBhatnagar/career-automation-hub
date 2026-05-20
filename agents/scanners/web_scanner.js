@@ -64,7 +64,7 @@ export async function scanUrlList(ctx, items, opts = {}) {
         // Try to find a more specific sublink for this role if it exists
         const bestUrl = sublinks.find(sl => sl.toLowerCase().includes(role.role_title.toLowerCase().split(' ')[0])) || url;
 
-        await upsertOpportunity(ctx.db, ctx.run, {
+        const { id } = await upsertOpportunity(ctx.db, ctx.run, {
           ...role,
           description,
           requirements: requirementsMatch ? requirementsMatch[1] : '',
@@ -77,6 +77,13 @@ export async function scanUrlList(ctx, items, opts = {}) {
           scan_session_id: ctx.sessionId,
           sector: item.sector || 'Renewables',
         });
+
+        // Trigger asynchronous agentic evaluation if needed
+        if (opts.track === 'B' || opts.evaluate === true) {
+            const { evaluationQueue } = await import('../lib/queue.js');
+            await evaluationQueue.add('evaluate-role', { id, sessionId: ctx.sessionId });
+        }
+
         found++;
       }
       // Memory Optimization: Clear large string payloads
