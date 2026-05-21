@@ -4,6 +4,8 @@ import { redisConnection } from './lib/queue.js';
 import { openDb, run, get } from '../database/db.js';
 import { scanUrlList } from './scanners/web_scanner.js';
 import JobAgentOrchestrator from './job_agent_orchestrator.js';
+import ProxyManager from './lib/proxy_manager.js';
+import SessionVault from './lib/session_vault.js';
 
 const worker = new Worker('job-ingestion-queue', async (job) => {
   const { sessionId, item, opts } = job.data;
@@ -36,7 +38,15 @@ const worker = new Worker('job-ingestion-queue', async (job) => {
   };
 
   try {
-    // 1. Scrape the source
+    // 1. Handle session rotation for authenticated platforms
+    if (opts.channel === 'linkedin' || opts.channel === 'indeed') {
+        const sessionToken = SessionVault.getNextSession(opts.channel);
+        if (sessionToken) {
+            opts.session_token = sessionToken;
+        }
+    }
+
+    // 2. Scrape the source
     let foundCount = 0;
     if (opts.channel === 'duckduckgo') {
         const { scanDuckDuckGo } = await import('./scanners/duckduckgo_scanner.js');
@@ -77,6 +87,11 @@ worker.on('completed', (job) => {
 
 worker.on('failed', (job, err) => {
   console.log(`[Worker] Job ${job.id} has failed with ${err.message}`);
+  // DLQ Logic: If 3 consecutive failures, job is effectively dead-lettered
+  // Cooling-off can be implemented by checking job.attemptsMade
+  if (job.attemptsMade >= 3) {
+      console.error(`[DLQ] Cooling-off triggered for Job ${job.id} - Keyword/Target blocked.`);
+  }
 });
 
 console.log('🚀 Ingestion Worker started and listening for jobs...');
