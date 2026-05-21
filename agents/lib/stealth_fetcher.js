@@ -1,61 +1,64 @@
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import ProxyManager from './proxy_manager.js';
+
+chromium.use(StealthPlugin());
 
 /**
- * StealthFetcher
- * Implements XHR interception and TLS-mimicry headers to bypass
- * basic anti-bot protections.
+ * Enhanced StealthFetcher
+ * Implements randomized hardware fingerprints and managed proxies.
  */
 export async function stealthFetch(url, options = {}) {
   const started = Date.now();
+  const profile = options.profile || 'scraping';
+  const proxy = ProxyManager.getProxy(profile);
+
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      proxy: proxy || undefined
+    });
+
     const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      viewport: { width: 1280, height: 720 },
-      extraHTTPHeaders: {
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1'
-      }
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      viewport: { width: 1920, height: 1080 },
+      deviceScaleFactor: Math.random() > 0.5 ? 1 : 2,
+      hasTouch: Math.random() > 0.8,
     });
 
     const page = await context.newPage();
 
-    // XHR/GraphQL Interception
-    const interceptedData = [];
-    page.on('response', async (response) => {
-      const request = response.request();
-      if (request.resourceType() === 'fetch' || request.resourceType() === 'xhr') {
-        try {
-          const json = await response.json();
-          interceptedData.push({ url: request.url(), data: json });
-        } catch (e) {
-          // Not JSON or couldn't parse
-        }
-      }
+    // Inject randomized fingerprints (Simulated)
+    await page.addInitScript(() => {
+        // Overwrite WebGL renderer
+        const getParameter = WebGLRenderingContext.prototype.getParameter;
+        WebGLRenderingContext.prototype.getParameter = function(parameter) {
+          if (parameter === 37445) return 'Intel Inc.';
+          if (parameter === 37446) return 'Intel(R) Iris(TM) Plus Graphics 640';
+          return getParameter.apply(this, arguments);
+        };
     });
 
     const response = await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2000 + Math.random() * 1000); // Human-like jitter
+
+    const html = await page.content();
+    const status = response ? response.status() : 0;
 
     return {
-      ok: response.status() < 400,
-      status: response.status(),
-      html: await page.content(),
-      intercepted: interceptedData.slice(0, 5), // Return first 5 XHR payloads
+      ok: status >= 200 && status < 400,
+      status,
+      html,
       duration_ms: Date.now() - started,
       final_url: page.url(),
-      fetcher: 'stealth'
+      fetcher: 'stealth-cluster'
     };
   } catch (e) {
     return {
       ok: false,
       error: e.message,
-      fetcher: 'stealth'
+      fetcher: 'stealth-cluster'
     };
   } finally {
     if (browser) await browser.close();

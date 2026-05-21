@@ -14,7 +14,7 @@ export const ingestionQueue = new Queue('job-ingestion-queue', {
     attempts: 3,
     backoff: {
       type: 'exponential',
-      delay: 1000,
+      delay: 2000,
     },
     removeOnComplete: true,
   },
