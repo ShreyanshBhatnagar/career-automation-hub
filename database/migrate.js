@@ -54,40 +54,6 @@ export async function migrate() {
       );
     }
 
-    const vTables = await all(
-      db,
-      `SELECT name FROM sqlite_master WHERE type='table' AND name='profile_versions'`
-    );
-    if (!vTables.length) {
-      await run(
-        db,
-        `CREATE TABLE profile_versions (
-          id           INTEGER PRIMARY KEY AUTOINCREMENT,
-          version      INTEGER NOT NULL,
-          snapshot     TEXT NOT NULL,
-          change_note  TEXT,
-          created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`
-      );
-    }
-
-    const fTables = await all(
-      db,
-      `SELECT name FROM sqlite_master WHERE type='table' AND name='feedback_events'`
-    );
-    if (!fTables.length) {
-      await run(
-        db,
-        `CREATE TABLE feedback_events (
-          id              INTEGER PRIMARY KEY AUTOINCREMENT,
-          opportunity_id  INTEGER,
-          event_type      TEXT NOT NULL,
-          payload         TEXT,
-          created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`
-      );
-    }
-
     console.log('✅ Database migrations applied');
   } finally {
     db.close();

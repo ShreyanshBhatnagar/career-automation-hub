@@ -36,15 +36,6 @@ const VIBE = {
   brother_style: 'Direct, supportive, highly technical, unfiltered field vocabulary',
 };
 
-const SKILL_SYNONYMS = {
-  "contractor management": ["vendor management", "subcontractor oversight", "labor coordination", "workforce management"],
-  "site reconciliation": ["material accounting", "field audit", "site verification", "operational reconciliation"],
-  "sap/erp": ["enterprise resource planning", "operational control systems", "service order management", "industrial software"],
-  "foundry": ["fab", "semiconductor plant", "cleanroom facility", "silicon manufacturing"],
-  "data center": ["server farm", "mission critical infrastructure", "hyperscale", "colocation facility"],
-  "high-voltage": ["hv", "power distribution", "substation", "electrical infrastructure"]
-};
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function loadProfile() {
@@ -87,17 +78,14 @@ function agentA_Sourcer(opp, profile) {
   const unmatched_nodes = [];
 
   for (const lp of profile.leverage_points) {
-    const expandedCorpus = [...lp.atomic_skills, ...lp.transferable_leverage].flatMap(skill => {
-        const s = skill.toLowerCase();
-        return [s, ...(SKILL_SYNONYMS[s] || [])];
-    });
+    const matchedSkills = lp.atomic_skills.filter(s => corpus.includes(norm(s)));
+    const matchedSectors = lp.transferable_leverage.filter(s => corpus.includes(norm(s)));
 
-    const matchedTerms = expandedCorpus.filter(term => corpus.includes(term));
-
-    if (matchedTerms.length > 0) {
+    if (matchedSkills.length > 0 || matchedSectors.length > 0) {
       matched_nodes.push({
         node: lp.node,
-        matched_terms: matchedTerms
+        matched_skills: matchedSkills,
+        matched_sectors: matchedSectors,
       });
     } else {
       unmatched_nodes.push(lp.node);

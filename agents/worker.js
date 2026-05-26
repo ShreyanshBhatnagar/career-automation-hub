@@ -69,27 +69,6 @@ const worker = new Worker('job-ingestion-queue', async (job) => {
     } else if (opts.channel === 'remoteok') {
       const { scanRemoteOK } = await import('./scanners/platform_scanner.js');
       foundCount = await scanRemoteOK(ctx);
-    } else if (opts.track === 'C' || opts.channel === 'platform_v2' || ['cutshort', 'iimjobs', 'jobspikr', 'tender_tiger', 'industry_news', 'github_hiring', 'founder_mode', 'linkedin_alumni_network'].includes(opts.channel)) {
-        const platformV2 = await import('./scanners/platform_v2.js');
-        const scannerMap = {
-            'cutshort': platformV2.scanCutShort,
-            'iimjobs': platformV2.scanIimjobs,
-            'jobspikr': platformV2.scanJobspikr,
-            'tender_tiger': platformV2.scanTenderTiger,
-            'industry_news': platformV2.scanMergerMarket,
-            'github_hiring': platformV2.scanGitHubJobs,
-            'founder_mode': platformV2.scanFounderModes,
-            'linkedin_alumni_network': platformV2.scanLinkedInAlumni
-        };
-        const scanner = scannerMap[opts.channel];
-        if (scanner) {
-            await scanner(ctx);
-            // We need to count findings if possible, but for now we trust the scanner
-            const lastLog = await get(db, `SELECT findings_count FROM scan_logs WHERE session_id = ? ORDER BY scanned_at DESC LIMIT 1`, [sessionId]);
-            foundCount = lastLog?.findings_count || 0;
-        } else {
-            foundCount = await scanUrlList(ctx, [item], opts);
-        }
     } else {
       foundCount = await scanUrlList(ctx, [item], opts);
     }
@@ -102,14 +81,7 @@ const worker = new Worker('job-ingestion-queue', async (job) => {
       [sessionId]
     );
     if (lastScan && /^Failed$/i.test(lastScan.status)) {
-      if (job.attemptsMade < 2) {
-          opts.fetch_type = 'stealth';
-          logger.info('INGESTION_WORKER', 'Escalating fetch strategy to stealth', {
-              source_target: item.url,
-              beyond_remarks: `attempt=${job.attemptsMade}`
-          });
-      }
-      if (opts.fetch_type === 'proxy' || opts.fetch_type === 'stealth' || opts.fetch_type === 'basic') {
+      if (opts.fetch_type === 'proxy' || opts.fetch_type === 'stealth') {
         const retryErr = new Error(`RETRY_REQUIRED: Ingestion blocked for ${item.url}. Backing off…`);
         logger.warn('INGESTION_WORKER', 'Scan blocked — triggering BullMQ retry backoff', {
           source_target:  item.url,

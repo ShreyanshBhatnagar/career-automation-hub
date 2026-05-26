@@ -48,10 +48,9 @@ const agentWorker = new Worker('agent-evaluation-queue', async (job) => {
       SET relevance_score = ?,
           notes           = ?,
           status          = 'Analyzed',
-          tailored_pitch  = ?,
-          coverage_score  = ?
+          tailored_pitch  = ?
       WHERE id = ?
-    `, [scoring.relevance_score, reasons, agentResult.agent_c.tailored_pitch, coverage, id]);
+    `, [scoring.relevance_score, reasons, agentResult.agent_c.tailored_pitch, id]);
 
     logger.info('EVAL_WORKER', `Opportunity #${id} evaluated`, {
       source_target:  `${opp.company_name} — ${opp.role_title}`,

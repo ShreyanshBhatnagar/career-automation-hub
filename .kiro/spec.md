@@ -8,7 +8,7 @@ The system must maintain strict runtime boundaries between processes via separat
 - Process 4: Social Signals Unconventional Discovery Worker (`agents/unconventional_discovery.js`)
 
 ## 2. Ingestion & Storage Decoupling (X/Y Task Allocation)
-- Discovery workers must focus entirely on raw text extraction, writing listings to SQLite with state `Raw Ingested` and `score = NULL`.
+- Discovery workers must focus entirely on raw text extraction, writing listings to SQLite with state `Raw Ingested` and `score = NULL`. 
 - Data persistence must execute an immediate single-record database flush (`upsertOpportunity`) to ensure data transparency instantly on the UI without waiting for an execution batch to finish.
 - The heavy AI multi-agent loop must process data asynchronously out of the `agent-evaluation-queue` backlogged in Redis.
 

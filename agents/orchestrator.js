@@ -71,11 +71,6 @@ export async function runDeepScan() {
       jobsDispatched++;
     }
 
-    // TRACK C — Platform V2 (CutShort, IIMJobs, TenderTiger, Industry News, GitHub Hiring, Founder Mode)
-    await dispatch(sources.platform_v2_sources || [], {
-        track: 'C', channel: 'platform_v2', fetch_type: 'basic', evaluate: true
-    });
-
     console.log(`[Orchestrator] Dispatched ${jobsDispatched} jobs to BullMQ`);
     return { sessionId, jobsDispatched };
   } finally {
