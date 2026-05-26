@@ -1,4 +1,4 @@
-import { scoreOpportunity, matchesRoleKeywords } from '../../logic/relevance.js';
+import { matchesRoleKeywords } from '../../logic/relevance.js';
 
 export async function upsertOpportunity(db, run, row) {
   const source_url = row.source_url || `generated://${row.scan_session_id}/${encodeURIComponent(row.role_title)}/${row.company_name}`;

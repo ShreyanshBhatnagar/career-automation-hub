@@ -100,7 +100,7 @@ export function validateOpportunityBody(req, res, next) {
     return res.status(400).json({ error: 'company_name and role_title are required and must be valid strings.' });
   }
   const source_channel = sanitizeString(b.source_channel, LIMITS.source_channel, { allowEmpty: true }) || 'manual';
-  if (!ALLOWED_CHANNELS.has(source_channel) && source_channel !== 'manual') {
+  if (!ALLOWED_CHANNELS.has(source_channel)) {
     return res.status(400).json({ error: 'Invalid source_channel.' });
   }
   req.sanitized = {
