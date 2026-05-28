@@ -2,21 +2,25 @@
   "human_telemetry": {
     "name": "The Brother",
     "linkedin_keys": {
-      "li_at": ""
+      "li_at": "AQEDASU..."
     },
     "project_portfolios": [
-      "Solar EPC - Ramgarh Project",
-      "Electrical Site Management",
-      "Vendor Reconciliation Ops"
+      "Solar EPC - Ramgarh Site Implementation",
+      "Large-Scale Contractor Management (50+ teams)",
+      "Industrial SAP Operational Control"
     ],
     "writing_style_vectors": {
-      "tone": "Direct, Professional, Industrial",
-      "preferred_terms": ["Structural Reality", "Operational Control", "Field Implementation"],
-      "avoid_terms": ["Synergy", "Thought Leader", "Disrupt"]
+      "tone": "Direct, Operational, Industrial",
+      "keywords": ["Structural Reality", "On-ground Execution", "Reconciliation"],
+      "avoid": ["Buzzwords", "Digital-first", "Corporate jargon"]
     }
   },
   "operational_boundaries": {
-    "geographic_grid": ["Delhi NCR", "Mumbai", "Pune", "Ahmedabad", "Indore", "Bangalore", "Hyderabad", "Chennai", "Kolkata", "Surat", "Vadodara", "Nagpur"],
-    "excluded_regions": ["Northeast India", "Ladakh", "Kashmir", "Himachal Pradesh", "Uttarakhand"]
+    "geographic_grid": {
+      "North-West": ["Delhi NCR", "Ahmedabad", "Jaipur", "Gurgaon", "Noida"],
+      "Mid": ["Mumbai", "Pune", "Indore", "Nagpur", "Surat", "Vadodara"],
+      "South": ["Bangalore", "Hyderabad", "Chennai", "Coimbatore", "Visakhapatnam"]
+    },
+    "excluded_regions": ["Northeast India", "Ladakh", "Kashmir", "Himachal", "Uttarakhand"]
   }
 }
