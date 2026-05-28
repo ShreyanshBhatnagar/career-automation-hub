@@ -1,0 +1,22 @@
+{
+  "human_telemetry": {
+    "name": "The Brother",
+    "linkedin_keys": {
+      "li_at": ""
+    },
+    "project_portfolios": [
+      "Solar EPC - Ramgarh Project",
+      "Electrical Site Management",
+      "Vendor Reconciliation Ops"
+    ],
+    "writing_style_vectors": {
+      "tone": "Direct, Professional, Industrial",
+      "preferred_terms": ["Structural Reality", "Operational Control", "Field Implementation"],
+      "avoid_terms": ["Synergy", "Thought Leader", "Disrupt"]
+    }
+  },
+  "operational_boundaries": {
+    "geographic_grid": ["Delhi NCR", "Mumbai", "Pune", "Ahmedabad", "Indore", "Bangalore", "Hyderabad", "Chennai", "Kolkata", "Surat", "Vadodara", "Nagpur"],
+    "excluded_regions": ["Northeast India", "Ladakh", "Kashmir", "Himachal Pradesh", "Uttarakhand"]
+  }
+}
