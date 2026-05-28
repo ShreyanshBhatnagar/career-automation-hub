@@ -21,8 +21,8 @@ export async function upsertOpportunity(db, run, row) {
   const result = await run(db, sql, [
     row.company_name,
     row.role_title,
-    row.sector || 'Renewables',
-    row.location || 'India',
+    row.target_sector || row.sector || 'Industrial',
+    row.metro_hub || row.location || 'India',
     source_url,
     row.notes || 'Awaiting V3 Agent evaluation...',
     row.description || '',
@@ -33,6 +33,12 @@ export async function upsertOpportunity(db, run, row) {
     row.raw_snippet || '',
     row.scan_session_id,
   ]);
+
+  // Strategic Phase 1: Ensure track-specific metadata is appended to raw payload
+  if (row.raw_job_payload) {
+    await run(db, `UPDATE opportunities SET target_sector = ?, metro_hub = ?, raw_job_payload = ? WHERE id = ?`,
+      [row.target_sector, row.metro_hub, row.raw_job_payload, result.lastID]);
+  }
   return { id: result.lastID, source_url };
 }
 
