@@ -71,12 +71,25 @@ app.get('/health', (req, res) => {
 app.use(express.static(path.resolve('./public')));
 
 app.get('/profile', requireUser, (req, res) => {
-  const profilePath = path.resolve('./docs/brother_profile.json');
+  const profilePath = path.resolve('./config/profile_vault.json');
   try {
+    if (!fs.existsSync(profilePath)) {
+        return res.json({});
+    }
     const profile = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
     res.json(profile);
   } catch (e) {
     res.status(500).json({ error: 'Failed to load profile' });
+  }
+});
+
+app.post('/profile', requireUser, (req, res) => {
+  const profilePath = path.resolve('./config/profile_vault.json');
+  try {
+    fs.writeFileSync(profilePath, JSON.stringify(req.body, null, 2));
+    res.json({ message: 'Profile updated successfully' });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
