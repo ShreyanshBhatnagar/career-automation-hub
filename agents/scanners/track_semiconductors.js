@@ -33,7 +33,7 @@ export async function scanSemiconductors(ctx) {
             await upsertOpportunity(ctx.db, ctx.run, {
                 company_name: 'Industrial Lead',
                 role_title: `Foundry Op: ${q.slice(0, 30)}`,
-                target_sector: sector,
+                target_sector: trackName,
                 metro_hub: geoGrid[0], // Map to primary hub
                 source_url: `https://discovery.industrial/${crypto.randomUUID()}`,
                 raw_job_payload: JSON.stringify({ query: q, timestamp: new Date().toISOString(), html_len: page.html.length }),

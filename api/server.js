@@ -8,6 +8,9 @@ import fs from 'fs';
 import { execSync } from 'child_process';
 import { openDb, all, run, get } from '../database/db.js';
 import { runDeepScan } from '../agents/orchestrator.js';
+import { scanSemiconductors } from '../agents/scanners/track_semiconductors.js';
+import { scanRenewables } from '../agents/scanners/track_renewables.js';
+import { scanDataCenters } from '../agents/scanners/track_datacenters.js';
 import ResumeTailorAgent from '../agents/resume_tailor_agent.js';
 import MessageDrafterAgent from '../agents/message_drafter_agent.js';
 import { env, assertProductionSecrets } from './config/env.js';
@@ -97,6 +100,20 @@ app.get('/opportunities', requireUser, validateOpportunityQuery, withDb(async (d
 app.get('/leads', requireUser, withDb(async (db, req, res, done) => {
   const rows = await all(db, `SELECT * FROM lead_contacts ORDER BY created_at DESC`);
   done(null, rows);
+}));
+
+app.get('/export/inventory', requireUser, withDb(async (db, req, res, done) => {
+  const rows = await all(db, `SELECT * FROM opportunities ORDER BY created_at DESC`);
+  if (!rows.length) return res.status(404).send('No data to export');
+
+  const headers = Object.keys(rows[0]).join(',');
+  const csv = [headers, ...rows.map(r =>
+      Object.values(r).map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+  )].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=opportunity_inventory.csv');
+  res.status(200).send(csv);
 }));
 
 app.post('/api/opportunities/:id/tailor-resume', requireUser, withDb(async (db, req, res, done) => {
@@ -251,6 +268,46 @@ app.post('/scan/run', strictWriteLimiter, requireUser, async (req, res) => {
     .catch((e) => {
       lastScanResult = { error: e.message, finishedAt: new Date().toISOString() };
       scanInProgress = false;
+    });
+});
+
+app.post('/scan/:track', strictWriteLimiter, requireUser, async (req, res) => {
+  const track = req.params.track;
+  if (scanInProgress) return res.status(409).json({ error: 'Another scan in progress' });
+
+  scanInProgress = true;
+  res.json({ message: `Track scan started: ${track}`, status: 'running' });
+
+  const db = openDb();
+  const ctx = {
+    db,
+    sessionId: `manual-${track}-${Date.now()}`,
+    log: (msg) => console.log(`[Track:${track}] ${msg}`),
+    run: run
+  };
+
+  const runners = {
+      semiconductors: scanSemiconductors,
+      renewables: scanRenewables,
+      datacenters: scanDataCenters
+  };
+
+  const runner = runners[track];
+  if (!runner) {
+      scanInProgress = false;
+      return;
+  }
+
+  runner(ctx)
+    .then(r => {
+        lastScanResult = { ...r, finishedAt: new Date().toISOString() };
+        scanInProgress = false;
+        db.close();
+    })
+    .catch(e => {
+        lastScanResult = { error: e.message, finishedAt: new Date().toISOString() };
+        scanInProgress = false;
+        db.close();
     });
 });
 
