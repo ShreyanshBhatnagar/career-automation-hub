@@ -3,18 +3,32 @@ import { upsertOpportunity } from '../lib/persist.js';
 
 function parseDdgResults(html) {
   const links = [];
-  const re = /<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([^<]+)</gi;
+  // Standard HTML DDG results
+  const re = /<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]+?)<\/a>/gi;
   let m;
-  while ((m = re.exec(html)) && links.length < 12) {
+  while ((m = re.exec(html)) && links.length < 15) {
     let href = m[1];
-    if (href.startsWith('//')) href = 'https:' + href;
-    links.push({ url: href, title: m[2].replace(/<[^>]+>/g, '').trim() });
-  }
-  if (!links.length) {
-    const fallback = [...html.matchAll(/uddg=([^&"]+)/g)].slice(0, 10);
-    for (const f of fallback) {
+    if (href.includes('duckduckgo.com/l/?uddg=')) {
       try {
-        links.push({ url: decodeURIComponent(f[1]), title: 'Search result' });
+        href = decodeURIComponent(href.split('uddg=')[1].split('&')[0]);
+      } catch (e) {}
+    }
+    if (href.startsWith('//')) href = 'https:' + href;
+    const title = m[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (href.includes('http')) {
+      links.push({ url: href, title: title || 'Search result' });
+    }
+  }
+  // Fallback for direct link extraction if structure changed
+  if (!links.length) {
+    const fallbackRe = /uddg=([^&"]+)/g;
+    const matches = [...html.matchAll(fallbackRe)].slice(0, 15);
+    for (const f of matches) {
+      try {
+        const decoded = decodeURIComponent(f[1]);
+        if (decoded.includes('http') && !links.find(l => l.url === decoded)) {
+          links.push({ url: decoded, title: 'Search result' });
+        }
       } catch (_) {}
     }
   }

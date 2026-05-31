@@ -20,6 +20,8 @@ export const env = {
   N8N_API_KEY: process.env.N8N_API_KEY || '',
   N8N_BASE_URL: process.env.N8N_BASE_URL || 'http://localhost:5678',
   SERPAPI_KEY: process.env.SERPAPI_KEY || '',
+  SCRAPER_API_KEY: process.env.SCRAPER_API_KEY || '',
+  SCRAPER_API_URL: process.env.SCRAPER_API_URL || 'https://api.scrapingbee.com/v1',
   COOKIE_SECURE: process.env.COOKIE_SECURE === 'true',
   RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 100,

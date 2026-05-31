@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS opportunities (
     status TEXT DEFAULT 'New', -- New, Reviewed, Applied, Interview, Closed
     next_action TEXT,
     notes TEXT,
+    description TEXT,
+    requirements TEXT,
+    tailored_pitch TEXT,
     posted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

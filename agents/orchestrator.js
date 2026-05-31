@@ -1,90 +1,86 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { openDb, run, all } from '../database/db.js';
-import { scanUrlList } from './scanners/web_scanner.js';
-import { scanDuckDuckGo } from './scanners/duckduckgo_scanner.js';
-import { scanSocialChannels } from './scanners/social_scanner.js';
+import { ingestionQueue } from './lib/queue.js';
 
-const sourcesPath = path.resolve('./agents/sources.json');
+// Resolve sources.json relative to this file, not the CWD
+const _dir = path.dirname(fileURLToPath(import.meta.url));
+const sourcesPath = path.resolve(_dir, 'sources.json');
 
+let _sources;
+try {
+  _sources = JSON.parse(fs.readFileSync(sourcesPath, 'utf-8'));
+} catch (e) {
+  throw new Error(`[Orchestrator] Failed to load sources.json: ${e.message}`);
+}
+
+/**
+ * Distributed Queue Orchestrator
+ */
 export async function runDeepScan() {
   const sessionId = crypto.randomUUID();
-  const sources = JSON.parse(fs.readFileSync(sourcesPath, 'utf-8'));
+  const sources = _sources;
   const db = openDb();
-  let totalFound = 0;
-  let sourcesChecked = 0;
+  let jobsDispatched = 0;
 
-  await run(
-    db,
-    `INSERT INTO scan_sessions (id, status) VALUES (?, 'running')`,
-    [sessionId]
-  );
+  try {
+    await run(
+      db,
+      `INSERT INTO scan_sessions (id, status) VALUES (?, 'running')`,
+      [sessionId]
+    );
 
-  const ctx = {
-    db,
-    run,
-    sessionId,
-    log(msg) {
-      console.log(`[Scan ${sessionId.slice(0, 8)}] ${msg}`);
-    },
-    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-    async logScan(entry) {
-      sourcesChecked++;
-      await run(
-        db,
-        `INSERT INTO scan_logs (source_name, source_channel, url_scanned, status, findings_count, details, duration_ms, session_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          entry.source_name,
-          entry.source_channel,
-          entry.url_scanned,
-          entry.status,
-          entry.findings_count,
-          entry.details,
-          entry.duration_ms || 0,
-          sessionId,
-        ]
-      );
-    },
-  };
+    console.log(`[Orchestrator ${sessionId.slice(0, 8)}] Dispatching tracking jobs to Redis…`);
 
-  ctx.log('=== Deep scan started ===');
+    const dispatch = async (items, opts) => {
+      for (const item of items) {
+        await ingestionQueue.add('scrape-source', { sessionId, item, opts });
+        jobsDispatched++;
+      }
+    };
 
-  totalFound += await scanUrlList(ctx, sources.career_portals, {
-    channel: 'internal_careers',
-    source_type: 'direct_job',
-  });
-  totalFound += await scanUrlList(ctx, sources.hiring_boards, {
-    channel: 'hiring_site',
-    source_type: 'direct_job',
-  });
-  totalFound += await scanUrlList(ctx, sources.tenders_and_signals, {
-    channel: 'tender',
-    source_type: 'hidden_signal',
-    offbeat: true,
-  });
-  totalFound += await scanSocialChannels(ctx, sources);
-  totalFound += await scanDuckDuckGo(ctx, sources.duckduckgo_queries || []);
+    // TRACK A — Direct portals, hiring boards, tenders
+    await dispatch(sources.career_portals || [], {
+      track: 'A', channel: 'internal_careers', source_type: 'direct_job', fetch_type: 'basic',
+    });
+    await dispatch(sources.hiring_boards || [], {
+      track: 'A', channel: 'hiring_site', source_type: 'direct_job', fetch_type: 'basic',
+    });
+    await dispatch(sources.tenders_and_signals || [], {
+      track: 'A', channel: 'tender', source_type: 'hidden_signal', offbeat: true, fetch_type: 'basic',
+    });
 
-  const oppCount = await all(db, `SELECT COUNT(*) as c FROM opportunities`);
-  const count = oppCount[0]?.c || 0;
+    // TRACK B — Social, search queries, specialised
+    for (const q of (sources.duckduckgo_queries || [])) {
+      await ingestionQueue.add('scrape-source', {
+        sessionId,
+        item: { name: `Query: ${q.slice(0, 30)}`, url: q },
+        opts: { track: 'B', channel: 'duckduckgo', fetch_type: 'stealth' },
+      });
+      jobsDispatched++;
+    }
 
-  await run(
-    db,
-    `UPDATE scan_sessions SET status='complete', finished_at=datetime('now'), sources_checked=?, roles_found=? WHERE id=?`,
-    [sourcesChecked, count, sessionId]
-  );
+    for (const url of (sources.linkedin?.search_urls || [])) {
+      await ingestionQueue.add('scrape-source', {
+        sessionId,
+        item: { name: 'LinkedIn Search', url },
+        opts: { track: 'B', channel: 'linkedin', fetch_type: 'stealth' },
+      });
+      jobsDispatched++;
+    }
 
-  db.close();
-  ctx.log(`=== Done: ${count} opportunities in DB, session ${sessionId} ===`);
+    // TRACK C — Platform V2 (CutShort, IIMJobs, TenderTiger, Industry News, GitHub Hiring, Founder Mode)
+    await dispatch(sources.platform_v2_sources || [], {
+        track: 'C', channel: 'platform_v2', fetch_type: 'basic', evaluate: true
+    });
 
-  return {
-    sessionId,
-    sourcesChecked,
-    opportunitiesInDb: count,
-    newSignalsThisRun: totalFound,
-  };
+    console.log(`[Orchestrator] Dispatched ${jobsDispatched} jobs to BullMQ`);
+    return { sessionId, jobsDispatched };
+  } finally {
+    db.close();
+  }
 }
 
 if (process.argv[1]?.endsWith('orchestrator.js')) {

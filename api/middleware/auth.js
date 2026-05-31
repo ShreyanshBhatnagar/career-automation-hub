@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { timingSafeEqual } from 'crypto';
 import { env } from '../config/env.js';
 
 const COOKIE_NAME = 'career_session';
@@ -29,7 +30,36 @@ function tokenFromRequest(req) {
   return null;
 }
 
+/** Timing-safe string comparison — prevents timing attacks on credential checks */
+function safeStringEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) {
+    // Still run a dummy comparison to avoid length-based timing leak
+    timingSafeEqual(ba, ba);
+    return false;
+  }
+  return timingSafeEqual(ba, bb);
+}
+
 export function requireUser(req, res, next) {
+  // Basic Auth fallback for CLI tools — password may contain colons
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Basic ')) {
+    const decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
+    const colonIdx = decoded.indexOf(':');
+    if (colonIdx !== -1) {
+      const username = decoded.slice(0, colonIdx);
+      const password = decoded.slice(colonIdx + 1);
+      if (safeStringEqual(username, env.ADMIN_USERNAME) && safeStringEqual(password, env.ADMIN_PASSWORD)) {
+        req.user = { sub: username, role: 'admin' };
+        return next();
+      }
+    }
+    return res.status(401).json({ error: 'Invalid credentials.' });
+  }
+
   const token = tokenFromRequest(req);
   if (!token) return res.status(401).json({ error: 'Authentication required.' });
   try {
@@ -42,7 +72,7 @@ export function requireUser(req, res, next) {
 
 export function requireInternalApiKey(req, res, next) {
   const key = req.headers['x-api-key'];
-  if (!key || key !== env.INTERNAL_API_KEY) {
+  if (!key || !safeStringEqual(key, env.INTERNAL_API_KEY)) {
     return res.status(401).json({ error: 'Invalid API key.' });
   }
   req.isInternal = true;
@@ -52,7 +82,7 @@ export function requireInternalApiKey(req, res, next) {
 /** Dashboard user JWT or internal agent API key */
 export function requireUserOrApiKey(req, res, next) {
   const key = req.headers['x-api-key'];
-  if (key && key === env.INTERNAL_API_KEY) {
+  if (key && safeStringEqual(key, env.INTERNAL_API_KEY)) {
     req.isInternal = true;
     return next();
   }

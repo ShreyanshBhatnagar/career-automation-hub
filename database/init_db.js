@@ -2,8 +2,8 @@ import sqlite3 from 'sqlite3';
 import fs from 'fs';
 import path from 'path';
 
-const DB_PATH = path.resolve('./career-automation/database/career_engine.db');
-const SCHEMA_PATH = path.resolve('./career-automation/database/schema.sql');
+const DB_PATH = path.resolve('./database/career_engine.db');
+const SCHEMA_PATH = path.resolve('./database/schema.sql');
 
 async function initDB() {
     const db = new sqlite3.Database(DB_PATH);

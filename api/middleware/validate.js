@@ -5,6 +5,8 @@ const LIMITS = {
   location: 150,
   source_url: 2048,
   notes: 4000,
+  description: 10000,
+  requirements: 5000,
   source_channel: 64,
   source_type: 64,
   source_name: 200,
@@ -98,7 +100,7 @@ export function validateOpportunityBody(req, res, next) {
     return res.status(400).json({ error: 'company_name and role_title are required and must be valid strings.' });
   }
   const source_channel = sanitizeString(b.source_channel, LIMITS.source_channel, { allowEmpty: true }) || 'manual';
-  if (!ALLOWED_CHANNELS.has(source_channel) && source_channel !== 'manual') {
+  if (!ALLOWED_CHANNELS.has(source_channel)) {
     return res.status(400).json({ error: 'Invalid source_channel.' });
   }
   req.sanitized = {
@@ -109,6 +111,8 @@ export function validateOpportunityBody(req, res, next) {
     source_url: sanitizeUrl(b.source_url),
     relevance_score: sanitizeScore(b.relevance_score),
     notes: sanitizeString(b.notes, LIMITS.notes, { allowEmpty: true }),
+    description: sanitizeString(b.description, LIMITS.description, { allowEmpty: true }),
+    requirements: sanitizeString(b.requirements, LIMITS.requirements, { allowEmpty: true }),
     source_channel,
     source_type: sanitizeString(b.source_type, LIMITS.source_type, { allowEmpty: true }) || 'direct_job',
     is_offbeat: b.is_offbeat ? 1 : 0,

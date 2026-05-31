@@ -3,372 +3,435 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Opportunity Map — Deep Scan</title>
+  <title>Opportunity Map — Central Ops</title>
   <style>
     :root {
       --bg: #0a0e14; --surface: #141b26; --surface2: #1c2636;
       --border: #2a3a52; --text: #e8edf4; --muted: #7d92ad;
-      --accent: #3d9cf5; --green: #34d399; --amber: #fbbf24; --red: #f87171; --purple: #a78bfa;
+      --accent: #3d9cf5; --green: #34d399; --amber: #fbbf24; --red: #f87171; --industrial: #52637a;
+      --cyan: #22d3ee; --cyan-dim: rgba(34, 211, 238, 0.1);
+      --sidebar-w: 240px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
-    header { border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; }
-    h1 { font-size: 1.25rem; } h1 span { color: var(--accent); }
-    .badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
-    main { max-width: 1280px; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
-    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-  button, select {
-      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-      padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+    body { font-family: "SF Mono", "Fira Code", monospace; background: var(--bg); color: var(--text); line-height: 1.4; font-size: 0.85rem; display: flex; height: 100vh; overflow: hidden; }
+
+    .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 2px solid var(--industrial); display: flex; flex-direction: column; padding: 1.5rem; }
+    .sidebar h1 { font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2.5rem; }
+    .sidebar h1 span { color: var(--accent); }
+    .nav-item { color: var(--muted); text-decoration: none; padding: 0.8rem 1rem; border-radius: 4px; margin-bottom: 0.5rem; transition: all 0.2s; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .nav-item:hover, .nav-item.active { background: var(--surface2); color: var(--accent); }
+    .nav-item.active { border-left: 3px solid var(--accent); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    header { border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; background: var(--surface); }
+    #global-search {
+        width: 280px !important;
+        transition: all 0.3s;
+        box-shadow: 0 0 5px rgba(61, 156, 245, 0.1);
     }
-    button.primary { background: var(--accent); border-color: var(--accent); color: #0a0e14; font-weight: 600; }
-    button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    button:hover:not(:disabled) { filter: brightness(1.1); }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.6rem; margin: 1rem 0; }
-    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; }
-    .stat .l { font-size: 0.65rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; }
-    .stat .v { font-size: 1.4rem; font-weight: 700; margin-top: 0.1rem; }
-    .tabs { display: flex; gap: 0.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
-    .tab { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 0.6rem 1rem; color: var(--muted); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .panel { display: none; } .panel.active { display: block; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
-    th { background: var(--surface2); color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
-    tr:hover td { background: rgba(61,156,245,0.05); }
-    .ch { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; }
-    .ch-linkedin { background: #0a66c233; color: #70b5ff; }
-    .ch-instagram { background: #e1306c33; color: #f472b6; }
-    .ch-x { background: #333; color: #ccc; }
-    .ch-facebook { background: #1877f233; color: #93c5fd; }
-    .ch-internal_careers { background: #34d39933; color: var(--green); }
-    .ch-hiring_site { background: #fbbf2433; color: var(--amber); }
-    .ch-tender, .ch-mnre, .ch-news { background: #a78bfa33; color: var(--purple); }
-    .ch-duckduckgo, .ch-web { background: #3d9cf533; color: var(--accent); }
-    .offbeat { color: var(--purple); font-size: 0.65rem; margin-left: 0.25rem; }
-    .score { font-weight: 700; }
-    .score.hi { color: var(--green); } .score.mid { color: var(--amber); } .score.lo { color: var(--muted); }
-    .status-ok { color: var(--green); } .status-fail { color: var(--red); } .status-warn { color: var(--amber); }
-    .scan-banner { background: var(--surface2); border: 1px solid var(--accent); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: none; }
-    .scan-banner.show { display: block; }
-    .audit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
-    .audit-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem; font-size: 0.75rem; }
-    .audit-card strong { display: block; color: var(--text); margin-bottom: 0.2rem; }
-    .empty { text-align: center; padding: 2rem; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; }
-    a { color: var(--accent); }
-    .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; align-items: center; }
-    .filters label { font-size: 0.75rem; color: var(--muted); }
-    #login-overlay {
-      position: fixed; inset: 0; background: rgba(10,14,20,0.92); display: flex;
-      align-items: center; justify-content: center; z-index: 100;
+    #global-search:focus {
+        width: 320px !important;
+        box-shadow: 0 0 15px rgba(61, 156, 245, 0.4);
+        border-color: var(--accent);
+        outline: none;
     }
+    .hstat { display: flex; flex-direction: column; align-items: center; }
+    .hstat .lbl { color: var(--muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .hstat .val { font-size: 1rem; font-weight: bold; }
+    .val.green { color: var(--green); }
+    .val.cyan { color: var(--cyan); }
+
+    .matrix-viewport { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .tri-pane { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--border); border-top: 1px solid var(--industrial); flex: 1; }
+    .pane { background: var(--bg); padding: 1.5rem; overflow-y: auto; }
+    .pane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--industrial); }
+    .pane-header h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--industrial); letter-spacing: 1px; }
+    .pane-count { font-size: 0.7rem; background: var(--surface2); padding: 0.1rem 0.5rem; border-radius: 10px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); padding: 1rem; margin-bottom: 1rem; }
+    .card h4 { color: var(--text); margin-bottom: 0.4rem; font-size: 0.9rem; }
+    .card .meta { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.8rem; display: flex; gap: 0.8rem; }
+    .score-tag { color: var(--green); font-weight: bold; }
+    .bridge-item { background: rgba(251, 191, 36, 0.05); border-left: 3px solid var(--amber); padding: 0.5rem; margin-top: 0.5rem; }
+    .bridge-label { font-size: 0.65rem; color: var(--amber); text-transform: uppercase; margin-bottom: 0.2rem; }
+    .outreach-box { font-size: 0.75rem; color: var(--muted); background: var(--surface2); padding: 0.75rem; border: 1px dashed var(--industrial); white-space: pre-wrap; }
+
+    .btn-export { background: var(--industrial); color: #fff; border: none; padding: 0.6rem 1.2rem; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.7rem; }
+
+    #profile-editor { background: var(--surface); border: 1px solid var(--industrial); padding: 2rem; margin: 0 2rem 2rem 2rem; display: none; }
+    #profile-editor.active { display: block; }
+
+    #health-dashboard { background: var(--surface); border: 1px solid var(--amber); padding: 2rem; margin: 0 2rem 2rem 2rem; display: none; }
+    #health-dashboard.active { display: block; }
+    .health-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+    .health-card { background: var(--bg); border: 1px solid var(--border); padding: 1rem; border-top: 4px solid var(--industrial); }
+    .health-card h4 { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+    .health-stat { font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; }
+    .health-bar { height: 4px; background: var(--surface2); width: 100%; margin: 0.5rem 0; position: relative; }
+    .health-fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--green); }
+    .red-chip { background: rgba(248, 113, 113, 0.1); color: var(--red); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.6rem; border: 1px solid var(--red); }
+    .green-chip { background: rgba(52, 211, 153, 0.1); color: var(--green); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.6rem; border: 1px solid var(--green); }
+
+    .tag-input { display: flex; flex-wrap: wrap; gap: 0.5rem; background: var(--bg); border: 1px solid var(--border); padding: 0.5rem; }
+    .chip { background: var(--surface2); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; display: flex; align-items: center; gap: 0.4rem; }
+    .chip span { cursor: pointer; color: var(--red); }
+    .feedback-row { display: flex; gap: 0.5rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border); }
+    .btn-fb { background: none; border: 1px solid var(--border); color: var(--muted); cursor: pointer; padding: 0.2rem 0.4rem; font-size: 0.8rem; border-radius: 4px; }
+    .btn-fb:hover { border-color: var(--accent); color: var(--accent); }
+    .verdict-badge { font-size: 0.6rem; text-transform: uppercase; padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.5rem; }
+    .verdict-good_fit { background: var(--green); color: var(--bg); }
+    .verdict-bad_fit { background: var(--red); color: var(--bg); }
+    .verdict-applied { background: var(--accent); color: var(--bg); }
+
+    #login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
     #login-overlay.hidden { display: none; }
-    .login-box {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-      padding: 1.5rem; width: min(360px, 92vw);
-    }
-    .login-box h2 { font-size: 1rem; margin-bottom: 1rem; }
-    .login-box label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
-    .login-box input {
-      width: 100%; margin-bottom: 0.75rem; padding: 0.5rem; border-radius: 6px;
-      border: 1px solid var(--border); background: var(--surface2); color: var(--text);
-    }
-    .login-err { color: var(--red); font-size: 0.8rem; min-height: 1.2rem; }
-    #app-main.hidden { display: none; }
   </style>
 </head>
 <body>
   <div id="login-overlay">
-    <div class="login-box">
-      <h2>Sign in to Opportunity Map</h2>
+    <div style="background: var(--surface); border: 1px solid var(--industrial); padding: 2rem; width: 320px;">
+      <h2 style="margin-bottom:1.5rem; font-size:0.9rem; text-transform:uppercase">Auth Gateway</h2>
       <form id="login-form">
-        <label for="username">Username</label>
-        <input id="username" name="username" autocomplete="username" required maxlength="64" />
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128" />
-        <p class="login-err" id="login-err"></p>
-        <button type="submit" class="primary" style="width:100%">Sign in</button>
+        <input id="username" placeholder="OPERATOR_ID" style="width:100%; padding:0.6rem; margin-bottom:1rem; background:var(--bg); border:1px solid var(--border); color:var(--text);" required />
+        <input id="password" type="password" placeholder="ACCESS_KEY" style="width:100%; padding:0.6rem; margin-bottom:1rem; background:var(--bg); border:1px solid var(--border); color:var(--text);" required />
+        <button type="submit" style="width:100%; padding:0.6rem; background:var(--accent); color:var(--bg); border:none; font-weight:bold; cursor:pointer;">INITIALIZE</button>
       </form>
     </div>
   </div>
-  <div id="app-main" class="hidden">
-  <header>
-    <div>
-      <h1>Opportunity <span>Map</span></h1>
-      <p style="color:var(--muted);font-size:0.8rem;margin-top:0.2rem">Multi-source deep scan · SQLite cache · persists on refresh</p>
-    </div>
-    <div class="actions">
-      <span class="badge" id="persist-badge">DB cache</span>
-      <button class="primary" id="btn-scan">Run deep scan</button>
-      <button id="btn-refresh">Refresh</button>
-      <button id="btn-logout">Sign out</button>
-    </div>
-  </header>
-  <main>
-    <div class="scan-banner" id="scan-banner">Scanning all sources… This may take 1–2 minutes.</div>
-    <div class="stats" id="stats"></div>
-    <div class="tabs">
-      <button class="tab active" data-tab="roles">All roles</button>
-      <button class="tab" data-tab="offbeat">Off-beat / hidden</button>
-      <button class="tab" data-tab="audit">Scan audit trail</button>
-    </div>
-    <section class="panel active" id="panel-roles">
-      <div class="filters">
-        <label>Source</label>
-        <select id="filter-channel"><option value="">All channels</option></select>
-        <label>Min score</label>
-        <select id="filter-score">
-          <option value="">Any</option>
-          <option value="0.4">0.4+</option>
-          <option value="0.6">0.6+</option>
-          <option value="0.8">0.8+</option>
-        </select>
+
+  <div class="sidebar">
+      <h1>STRAT <span>OPS</span></h1>
+      <a href="/" class="nav-item active">Central Matrix</a>
+      <a href="/linkedin.html" class="nav-item">LinkedIn Portal</a>
+      <a href="/scanners.html" class="nav-item">Ingestion Control</a>
+      <a href="/profile.html" class="nav-item">Config Vault</a>
+      <div style="margin-top: auto;">
+          <button id="btn-logout" style="width:100%; background:none; border: 1px solid var(--industrial); color: var(--muted); padding: 0.5rem; font-size: 0.65rem; cursor:pointer">TERMINATE SESSION</button>
       </div>
-      <div id="roles-table-wrap"></div>
-    </section>
-    <section class="panel" id="panel-offbeat">
-      <p style="color:var(--muted);font-size:0.8rem;margin-bottom:0.75rem">Tenders, MNRE signals, social radars, and non-obvious leads most job boards miss.</p>
-      <div id="offbeat-table-wrap"></div>
-    </section>
-    <section class="panel" id="panel-audit">
-      <h2 style="font-size:0.95rem;margin-bottom:0.5rem">Where we scanned</h2>
-      <div class="audit-grid" id="audit-grid"></div>
-      <div id="audit-table-wrap"></div>
-    </section>
-  </main>
   </div>
+
+  <div class="main-content" id="app-main">
+    <header>
+      <div style="display:flex; gap: 1.5rem; align-items: center;">
+          <button class="btn-export" style="background: var(--accent); color: var(--bg); margin-right: 1rem;" onclick="toggleProfileEditor()">Edit Profile</button>
+          <button class="btn-export" style="background: var(--amber); color: var(--bg); margin-right: 1rem;" onclick="toggleHealthDashboard()">⚡ System Health</button>
+          <input type="text" id="global-search" placeholder="SEARCH_POOLS..." style="background: var(--surface2); border: 1px solid var(--industrial); color: var(--text); padding: 0.5rem; font-family: monospace; font-size: 0.75rem;" />
+          <select id="filter-metro" style="background: var(--surface2); border: 1px solid var(--industrial); color: var(--muted); padding: 0.5rem; font-size: 0.7rem;">
+              <option value="">ALL_METROS</option>
+          </select>
+          <select id="filter-posted" style="background: var(--surface2); border: 1px solid var(--industrial); color: var(--muted); padding: 0.5rem; font-size: 0.7rem;">
+              <option value="">ALL_POSTED</option>
+              <option value="1">PAST_24H</option>
+              <option value="3">PAST_3D</option>
+              <option value="7">PAST_7D</option>
+          </select>
+          <div class="hstat">
+            <span class="lbl">Clearances</span>
+            <span class="val green" id="stat-clearances">0</span>
+          </div>
+          <div class="hstat">
+            <span class="lbl">High Coverage</span>
+            <span class="val cyan" id="stat-coverage">—</span>
+          </div>
+      </div>
+      <button class="btn-export" onclick="exportInventory()">Export Data Inventory</button>
+    </header>
+
+    <div class="matrix-viewport">
+        <div id="health-dashboard">
+            <div class="health-grid" id="health-grid-content">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <div id="profile-editor">
+            <h2 style="font-size: 0.9rem; text-transform: uppercase; color: var(--accent); margin-bottom: 1.5rem;">Living Profile System</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div>
+                    <h3 style="font-size: 0.75rem; margin-bottom: 0.5rem; color: var(--muted);">Section 1: Technical Stack</h3>
+                    <div class="tag-input" id="tech-tags"></div>
+                    <input type="text" id="new-tech" placeholder="Add node..." style="width: 100%; margin-top: 0.5rem; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.4rem; font-size: 0.75rem;" onkeypress="if(event.key==='Enter') addTechTag()">
+
+                    <h3 style="font-size: 0.75rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--muted);">Section 2: Leverage Points</h3>
+                    <div id="leverage-display" style="font-size: 0.7rem; color: var(--muted); background: var(--bg); padding: 1rem; border: 1px dashed var(--border);"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.75rem; margin-bottom: 0.5rem; color: var(--muted);">Section 3: Resume Text</h3>
+                    <textarea id="resume-text" placeholder="Paste your current resume text..." style="width: 100%; height: 120px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.5rem; font-size: 0.75rem;"></textarea>
+
+                    <h3 style="font-size: 0.75rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--muted);">Section 4: Target Sectors</h3>
+                    <div id="sector-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;"></div>
+                </div>
+            </div>
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; align-items: center;">
+                <span id="save-status" style="font-size: 0.7rem; color: var(--green);"></span>
+                <button class="btn-export" onclick="saveProfile()" style="background: var(--accent); color: var(--bg);">Save Profile Configuration</button>
+            </div>
+        </div>
+
+        <div class="tri-pane">
+            <div class="pane" id="pane-clearances">
+                <div class="pane-header"><h3>Direct Clearances</h3><span class="pane-count" id="count-clear">0</span></div>
+                <div id="feed-clearances"></div>
+            </div>
+            <div class="pane" id="pane-bridge">
+                <div class="pane-header"><h3>Project Bridge Lab</h3><span class="pane-count" id="count-bridge">0</span></div>
+                <div id="feed-bridge"></div>
+            </div>
+            <div class="pane" id="pane-outreach">
+                <div class="pane-header"><h3>Outreach Vault</h3><span class="pane-count" id="count-outreach">0</span></div>
+                <div id="feed-outreach"></div>
+            </div>
+        </div>
+    </div>
+  </div>
+
   <script>
-    let allRoles = [];
-    let scanPoll = null;
-
-    const CHANNELS = ['linkedin','instagram','x','facebook','internal_careers','hiring_site','tender','mnre','news','duckduckgo','web'];
-    const fetchOpts = { credentials: 'include' };
-
+    let allData = [];
     async function api(path, options = {}) {
-      const res = await fetch(path, { ...fetchOpts, ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
-      if (res.status === 401) {
-        showLogin('Session expired. Sign in again.');
-        throw new Error('Unauthorized');
-      }
-      if (res.status === 429) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Rate limit exceeded');
-      }
+      const res = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+      if (res.status === 401) { location.reload(); }
       return res;
     }
-
-    function showLogin(msg) {
-      document.getElementById('login-overlay').classList.remove('hidden');
-      document.getElementById('app-main').classList.add('hidden');
-      if (msg) document.getElementById('login-err').textContent = msg;
-    }
-
-    function showApp() {
-      document.getElementById('login-overlay').classList.add('hidden');
-      document.getElementById('app-main').classList.remove('hidden');
-      document.getElementById('login-err').textContent = '';
-    }
-
     async function checkSession() {
-      const res = await fetch('/auth/me', fetchOpts);
-      if (res.ok) {
-        showApp();
-        return true;
-      }
-      showLogin();
-      return false;
+        const res = await fetch('/auth/me');
+        if (res.ok) { document.getElementById('login-overlay').classList.add('hidden'); loadData(); }
     }
-
     document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('username').value.trim().slice(0, 64);
-      const password = document.getElementById('password').value.slice(0, 128);
-      const errEl = document.getElementById('login-err');
-      errEl.textContent = '';
-      try {
-        const res = await fetch('/auth/login', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        if (res.ok) location.reload();
+    });
+    document.getElementById('btn-logout').addEventListener('click', () => {
+        fetch('/auth/logout', { method: 'POST' }).then(() => location.reload());
+    });
+    let currentProfile = {};
+    async function loadData() {
+        const res = await api('/opportunities');
+        allData = await res.json();
+        const profileRes = await fetch('/profile');
+        currentProfile = await profileRes.json();
+
+        // Render Profile Editor
+        const techTags = document.getElementById('tech-tags');
+        techTags.innerHTML = '';
+        (currentProfile.technical_nodes || []).forEach(node => {
+            techTags.innerHTML += `<div class="chip">${node}<span onclick="removeTechTag('${node}')">×</span></div>`;
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          errEl.textContent = data.error || 'Login failed';
-          return;
+
+        const levDisp = document.getElementById('leverage-display');
+        levDisp.innerHTML = (currentProfile.leverage_points || []).map(lp => `<div><strong>${lp.node}</strong><br>${lp.atomic_skills.join(', ')}</div>`).join('<br>');
+        levDisp.innerHTML += '<div style="margin-top:1rem; border-top:1px solid var(--border); padding-top:0.5rem">Edit docs/brother_profile.json to modify leverage structure.</div>';
+
+        const secList = document.getElementById('sector-list');
+        secList.innerHTML = '';
+        ['Semiconductors', 'Renewables', 'Data Centers', 'EV Infrastructure', 'Heavy Industrial Automation', 'Mega-Scale Energy Projects'].forEach(sec => {
+            const checked = (currentProfile.target_arbitrage_sectors || []).includes(sec) ? 'checked' : '';
+            secList.innerHTML += `<label style="font-size:0.7rem; display:flex; align-items:center; gap:0.5rem;"><input type="checkbox" value="${sec}" ${checked}> ${sec}</label>`;
+        });
+        document.getElementById('resume-text').value = currentProfile.resume_text || '';
+
+        if (currentProfile.operational_boundaries?.geographic_grid) {
+            const grid = profile.operational_boundaries.geographic_grid;
+            const metros = Object.values(grid).flat();
+            const select = document.getElementById('filter-metro');
+            metros.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m.toUpperCase();
+                select.appendChild(opt);
+            });
         }
-        showApp();
-        await loadAll();
-      } catch {
-        errEl.textContent = 'Network error';
-      }
-    });
+        renderPanes();
+    }
+    document.getElementById('global-search').addEventListener('input', renderPanes);
+    document.getElementById('filter-posted').addEventListener('change', renderPanes);
+    document.getElementById('filter-metro').addEventListener('change', renderPanes);
 
-    document.getElementById('btn-logout').addEventListener('click', async () => {
-      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-      showLogin();
-    });
+    function renderPanes() {
+        const query = document.getElementById('global-search').value.toLowerCase();
+        const timeLimit = document.getElementById('filter-posted').value;
+        const metroLimit = document.getElementById('filter-metro').value;
+        const clearFeed = document.getElementById('feed-clearances');
+        const bridgeFeed = document.getElementById('feed-bridge');
+        const outreachFeed = document.getElementById('feed-outreach');
+        clearFeed.innerHTML = ''; bridgeFeed.innerHTML = ''; outreachFeed.innerHTML = '';
 
-    document.querySelectorAll('.tab').forEach((t) => {
-      t.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach((x) => x.classList.remove('active'));
-        t.classList.add('active');
-        document.getElementById('panel-' + t.dataset.tab).classList.add('active');
-      });
-    });
+        const filtered = allData.filter(r => {
+            const text = `${r.role_title} ${r.company_name} ${r.target_sector} ${r.metro_hub} ${r.location}`.toLowerCase();
+            if (query && !text.includes(query)) return false;
+            if (metroLimit && !text.includes(metroLimit.toLowerCase())) return false;
+            if (timeLimit) {
+                const days = Number(timeLimit);
+                const date = new Date(r.posted_at || r.created_at);
+                if (Date.now() - date.getTime() > days * 24 * 60 * 60 * 1000) return false;
+            }
+            return true;
+        });
 
-    function esc(s) {
-      const d = document.createElement('div');
-      d.textContent = s ?? '';
-      return d.innerHTML;
+        const direct = filtered.filter(r => r.relevance_score >= 0.85 || (r.coverage_score >= 0.67 && r.relevance_score >= 0.7));
+        const bridge = filtered.filter(r => (r.relevance_score >= 0.5 && r.relevance_score < 0.85) && !direct.includes(r));
+        const outreach = filtered.filter(r => r.status === 'Reviewed' || r.tailored_pitch);
+
+        document.getElementById('count-clear').textContent = direct.length;
+        document.getElementById('count-bridge').textContent = bridge.length;
+        document.getElementById('count-outreach').textContent = outreach.length;
+
+        document.getElementById('stat-clearances').textContent = direct.filter(r => r.relevance_score >= 0.85).length;
+        document.getElementById('stat-coverage').textContent = filtered.filter(r => r.coverage_score >= 0.67).length;
+
+        direct.forEach(r => {
+            const coverageBadge = r.coverage_score != null ? `<span class="tag" style="background:var(--cyan-dim); color:var(--cyan); border: 1px solid var(--cyan); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem;">⬡ node ${Math.round(r.coverage_score * 100)}%</span>` : '';
+            const verdictBadge = r.user_verdict ? `<span class="verdict-badge verdict-${r.user_verdict}">${r.user_verdict.replace('_', ' ')}</span>` : '';
+            clearFeed.innerHTML += `<div class="card">
+                <div onclick="applyForRole(${r.id})" style="cursor:pointer">
+                    <h4>${r.role_title}${verdictBadge}</h4>
+                    <div class="meta"><span>${r.company_name}</span><span class="score-tag">SCORE: ${r.relevance_score}</span>${coverageBadge}</div>
+                </div>
+                <div class="feedback-row">
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'good_fit')">👍 Good</button>
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'bad_fit')">👎 Bad</button>
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'applied')">📤 Applied</button>
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'ghosted')">👻 Ghosted</button>
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'interviewed')">🎤 Interview</button>
+                </div>
+            </div>`;
+        });
+        bridge.forEach(r => {
+            const coverageBadge = r.coverage_score != null ? `<span class="tag" style="background:var(--cyan-dim); color:var(--cyan); border: 1px solid var(--cyan); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem;">⬡ node ${Math.round(r.coverage_score * 100)}%</span>` : '';
+            const verdictBadge = r.user_verdict ? `<span class="verdict-badge verdict-${r.user_verdict}">${r.user_verdict.replace('_', ' ')}</span>` : '';
+            bridgeFeed.innerHTML += `<div class="card">
+                <h4>${r.role_title}${verdictBadge}</h4>
+                <div class="meta"><span>${r.company_name}</span>${coverageBadge}</div>
+                <div class="bridge-item"><div class="bridge-label">Bridge Gap</div><div style="font-size:0.75rem">${r.description?.slice(0, 100)}...</div></div>
+                <div class="feedback-row">
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'good_fit')">👍 Good</button>
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'bad_fit')">👎 Bad</button>
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'applied')">📤 Applied</button>
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'ghosted')">👻 Ghosted</button>
+                    <button class="btn-fb" onclick="sendFeedback(${r.id}, 'interviewed')">🎤 Interview</button>
+                </div>
+            </div>`;
+        });
+        outreach.forEach(r => {
+            outreachFeed.innerHTML += `<div class="card"><h4>${r.role_title}</h4><div class="meta"><span>${r.company_name}</span></div><div class="outreach-box">${r.tailored_pitch || 'Drafting...'}</div></div>`;
+        });
     }
 
-    function chBadge(ch) {
-      const c = (ch || 'web').replace(/\s/g, '_');
-      return `<span class="ch ch-${c}">${esc(ch || 'web')}</span>`;
+    async function applyForRole(id) {
+        await api(`/api/opportunities/${id}/tailor-resume`, { method: 'POST', body: JSON.stringify({}) });
+        setTimeout(() => loadData(), 1500);
     }
 
-    function scoreClass(n) {
-      if (n >= 0.7) return 'hi';
-      if (n >= 0.4) return 'mid';
-      return 'lo';
+    function toggleProfileEditor() {
+        const el = document.getElementById('profile-editor');
+        el.classList.toggle('active');
     }
 
-    function roleRow(r) {
-      const link = r.source_url ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">Open</a>` : '—';
-      return `<tr>
-        <td class="score ${scoreClass(r.relevance_score || 0)}">${r.relevance_score != null ? Number(r.relevance_score).toFixed(2) : '—'}</td>
-        <td>${chBadge(r.source_channel)}${r.is_offbeat ? '<span class="offbeat">◆ hidden</span>' : ''}</td>
-        <td>${esc(r.company_name)}</td>
-        <td>${esc(r.role_title)}</td>
-        <td>${esc(r.location || '—')}</td>
-        <td>${esc(r.sector || '—')}</td>
-        <td style="max-width:200px;font-size:0.72rem;color:var(--muted)">${esc((r.notes || '').slice(0, 120))}</td>
-        <td>${link}</td>
-      </tr>`;
+    function removeTechTag(node) {
+        currentProfile.technical_nodes = currentProfile.technical_nodes.filter(n => n !== node);
+        loadData(); // Re-render tags
     }
 
-    function renderTable(el, rows) {
-      if (!rows.length) {
-        el.innerHTML = '<div class="empty">No roles yet. Click <strong>Run deep scan</strong> to search LinkedIn, Instagram, X, Facebook, hiring sites, company careers, tenders &amp; MNRE — results save to SQLite and persist on refresh.</div>';
-        return;
-      }
-      el.innerHTML = `<table><thead><tr>
-        <th>Score</th><th>Source</th><th>Company</th><th>Role</th><th>Location</th><th>Sector</th><th>Notes</th><th>Link</th>
-      </tr></thead><tbody>${rows.map(roleRow).join('')}</tbody></table>`;
-    }
-
-    function filteredRoles(offbeatOnly) {
-      const ch = document.getElementById('filter-channel').value;
-      const min = document.getElementById('filter-score').value;
-      return allRoles.filter((r) => {
-        if (offbeatOnly && !r.is_offbeat) return false;
-        if (ch && r.source_channel !== ch) return false;
-        if (min && (r.relevance_score || 0) < Number(min)) return false;
-        return true;
-      });
-    }
-
-    function renderRoles() {
-      renderTable(document.getElementById('roles-table-wrap'), filteredRoles(false));
-      renderTable(document.getElementById('offbeat-table-wrap'), filteredRoles(true));
-    }
-
-    function renderStats(summary) {
-      const t = summary?.totals || {};
-      document.getElementById('stats').innerHTML = `
-        <div class="stat"><div class="l">Cached roles</div><div class="v">${t.opportunities ?? 0}</div></div>
-        <div class="stat"><div class="l">Off-beat</div><div class="v">${t.offbeat ?? 0}</div></div>
-        <div class="stat"><div class="l">Last scan</div><div class="v" style="font-size:0.85rem">${summary?.lastScanAt ? new Date(summary.lastScanAt).toLocaleString() : 'Never'}</div></div>
-        <div class="stat"><div class="l">Sources checked</div><div class="v">${summary?.lastSession?.sources_checked ?? '—'}</div></div>
-      `;
-      const sel = document.getElementById('filter-channel');
-      const cur = sel.value;
-      sel.innerHTML = '<option value="">All channels</option>' +
-        CHANNELS.map((c) => `<option value="${c}">${c}</option>`).join('');
-      sel.value = cur;
-
-      const grid = document.getElementById('audit-grid');
-      const by = summary?.byChannel || [];
-      grid.innerHTML = by.length ? by.map((b) => `
-        <div class="audit-card">
-          <strong>${esc(b.source_channel || 'unknown')}</strong>
-          ${b.scans} scans · ${b.findings} findings<br>
-          <span class="status-ok">${b.ok} ok</span> · <span class="status-fail">${b.failed} failed</span>
-        </div>
-      `).join('') : '<div class="empty">Run a scan to see per-source breakdown.</div>';
-    }
-
-    async function loadAuditLogs() {
-      const res = await api('/scan-logs');
-      const logs = await res.json();
-      const wrap = document.getElementById('audit-table-wrap');
-      if (!logs.length) {
-        wrap.innerHTML = '';
-        return;
-      }
-      wrap.innerHTML = `<table><thead><tr>
-        <th>Time</th><th>Source</th><th>Channel</th><th>Status</th><th>Found</th><th>URL</th><th>Details</th>
-      </tr></thead><tbody>${logs.map((l) => {
-        const st = /fail/i.test(l.status) ? 'status-fail' : /success|indexed/i.test(l.status) ? 'status-ok' : 'status-warn';
-        return `<tr>
-          <td>${l.scanned_at ? new Date(l.scanned_at).toLocaleString() : '—'}</td>
-          <td>${esc(l.source_name)}</td>
-          <td>${chBadge(l.source_channel)}</td>
-          <td class="${st}">${esc(l.status)}</td>
-          <td>${l.findings_count ?? 0}</td>
-          <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis"><a href="${esc(l.url_scanned || '#')}" target="_blank">${esc((l.url_scanned || '').slice(0, 50))}</a></td>
-          <td style="font-size:0.72rem;color:var(--muted)">${esc(l.details)}</td>
-        </tr>`;
-      }).join('')}</tbody></table>`;
-    }
-
-    async function loadAll() {
-      const [rolesRes, summaryRes] = await Promise.all([
-        api('/opportunities'),
-        api('/scan/summary'),
-      ]);
-      allRoles = await rolesRes.json();
-      const summary = await summaryRes.json();
-      renderStats(summary);
-      renderRoles();
-      await loadAuditLogs();
-      document.getElementById('persist-badge').textContent =
-        `${allRoles.length} roles in SQLite cache`;
-    }
-
-    async function pollScanStatus() {
-      const res = await api('/scan/status');
-      const s = await res.json();
-      const banner = document.getElementById('scan-banner');
-      const btn = document.getElementById('btn-scan');
-      if (s.scanInProgress) {
-        banner.classList.add('show');
-        btn.disabled = true;
-        btn.textContent = 'Scanning…';
-      } else {
-        banner.classList.remove('show');
-        btn.disabled = false;
-        btn.textContent = 'Run deep scan';
-        if (scanPoll) {
-          clearInterval(scanPoll);
-          scanPoll = null;
-          await loadAll();
+    function addTechTag() {
+        const input = document.getElementById('new-tech');
+        const val = input.value.trim();
+        if (val && (currentProfile.technical_nodes || []).length < 20) {
+            currentProfile.technical_nodes = [...(currentProfile.technical_nodes || []), val];
+            input.value = '';
+            loadData();
         }
-      }
     }
 
-    document.getElementById('btn-scan').addEventListener('click', async () => {
-      await api('/scan/run', { method: 'POST' });
-      scanPoll = setInterval(pollScanStatus, 2000);
-      pollScanStatus();
-    });
-    document.getElementById('btn-refresh').addEventListener('click', loadAll);
-    document.getElementById('filter-channel').addEventListener('change', renderRoles);
-    document.getElementById('filter-score').addEventListener('change', renderRoles);
+    async function saveProfile() {
+        const status = document.getElementById('save-status');
+        const sectors = Array.from(document.querySelectorAll('#sector-list input:checked')).map(i => i.value);
+        const resume = document.getElementById('resume-text').value;
 
-    checkSession().then((ok) => { if (ok) loadAll(); });
+        const body = {
+            technical_nodes: currentProfile.technical_nodes,
+            target_arbitrage_sectors: sectors,
+            resume_text: resume
+        };
+
+        const res = await api('/profile', { method: 'POST', body: JSON.stringify(body) });
+        if (res.ok) {
+            status.textContent = 'Profile updated — re-scoring all roles…';
+            setTimeout(() => location.reload(), 3000);
+        }
+    }
+
+    async function sendFeedback(id, verdict) {
+        const notes = prompt("Any notes for this feedback? (optional)");
+        await api('/profile/feedback', { method: 'POST', body: JSON.stringify({ opportunity_id: id, verdict, notes }) });
+        loadData();
+    }
+
+    let healthInterval = null;
+    function toggleHealthDashboard() {
+        const el = document.getElementById('health-dashboard');
+        el.classList.toggle('active');
+        if (el.classList.contains('active')) {
+            updateHealth();
+            healthInterval = setInterval(updateHealth, 60000);
+        } else {
+            clearInterval(healthInterval);
+        }
+    }
+
+    async function updateHealth() {
+        const res = await api('/system/health');
+        const data = await res.json();
+        const grid = document.getElementById('health-grid-content');
+
+        const successColor = data.scan_health.success_rate > 0.8 ? 'var(--green)' : (data.scan_health.success_rate > 0.5 ? 'var(--amber)' : 'var(--red)');
+
+        grid.innerHTML = `
+            <div class="health-card" style="border-top-color: ${successColor}">
+                <h4>Scan Health</h4>
+                <div class="health-stat">${Math.round(data.scan_health.success_rate * 100)}% Success</div>
+                <div class="health-bar"><div class="health-fill" style="width: ${data.scan_health.success_rate * 100}%; background: ${successColor}"></div></div>
+                <div style="margin-top:1rem; display:flex; flex-wrap:wrap; gap:0.4rem">
+                    ${data.scan_health.blocked_domains.map(d => `<span class="red-chip">${d.domain}</span>`).join('')}
+                    ${data.scan_health.top_performing.length ? `<span class="green-chip">Top: ${data.scan_health.top_performing[0].source_name}</span>` : ''}
+                </div>
+            </div>
+            <div class="health-card">
+                <h4>Pipeline</h4>
+                <div style="font-size: 0.7rem; color: var(--muted)">Ingestion Depth: ${data.pipeline_health.redis_queue_depth_ingestion}</div>
+                <div style="font-size: 0.7rem; color: var(--muted)">Agent Depth: ${data.pipeline_health.redis_queue_depth_agent}</div>
+                <div style="margin-top:1rem; color: ${data.pipeline_health.failed_jobs_24h > 5 ? 'var(--red)' : 'var(--muted)'}">
+                    ${data.pipeline_health.failed_jobs_24h} Failed (24h)
+                </div>
+            </div>
+            <div class="health-card">
+                <h4>Opportunity Coverage</h4>
+                <div style="font-size: 0.75rem">
+                    Analyzed: ${data.opportunity_health.analyzed} | Raw: ${data.opportunity_health.raw_ingested} | Applied: ${data.opportunity_health.applied}
+                </div>
+                <div style="margin-top:0.5rem; color: ${data.opportunity_health.high_score_unreviewed > 10 ? 'var(--amber)' : 'var(--muted)'}">
+                    High Score Unreviewed: ${data.opportunity_health.high_score_unreviewed}
+                </div>
+                <div style="margin-top:0.5rem; font-size: 0.65rem; color: var(--muted)">
+                    Coverage: High ${Math.round(data.opportunity_health.coverage_distribution.high/data.opportunity_health.total*100 || 0)}% /
+                    Mid ${Math.round(data.opportunity_health.coverage_distribution.mid/data.opportunity_health.total*100 || 0)}% /
+                    Low ${Math.round(data.opportunity_health.coverage_distribution.low/data.opportunity_health.total*100 || 0)}%
+                </div>
+            </div>
+            <div class="health-card">
+                <h4>Profile Health</h4>
+                <div style="font-size: 0.75rem">Version: ${data.profile_health.current_version}</div>
+                <div class="health-bar"><div class="health-fill" style="width: ${data.profile_health.good_fit_ratio * 100}%"></div></div>
+                <div style="font-size: 0.65rem; color: var(--muted)">Good fit ratio: ${Math.round(data.profile_health.good_fit_ratio * 100)}%</div>
+                <button class="btn-fb" style="margin-top:1rem; width:100%" onclick="saveProfile()">Re-run scoring</button>
+            </div>
+        `;
+    }
+
+    function exportInventory() { window.location.href = '/export/inventory'; }
+    checkSession();
   </script>
 </body>
 </html>

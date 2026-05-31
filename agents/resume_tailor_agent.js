@@ -27,7 +27,22 @@ class ResumeTailorAgent extends BaseAgent {
         }
 
         this.log(`Generated Pitch: ${pitch}`);
-        return { pitch, targeted_skills: profile.technical_skills };
+        return { pitch, targeted_skills: profile.technical_nodes || [] };
+    }
+
+    async generateMarkdownBlock(jobDescription, profilePath, customParams = {}) {
+        this.log('Generating tailored markdown bullet points...');
+        const profile = JSON.parse(fs.readFileSync(profilePath, 'utf-8'));
+        const leverage = profile.leverage_points?.[0] || {};
+
+        const markdown = `
+### Tailored Experience: ${customParams.project_name || 'Industrial Infrastructure'}
+- **Strategic Implementation:** Leveraged ${leverage.node || 'Complex Project Implementation'} to manage 50+ contractors in a high-stakes field environment.
+- **Operational Control:** Applied ${leverage.atomic_skills?.[3] || 'SAP ERP Industrial Control'} for site reconciliation and vendor governance.
+- **Value Neutralization:** Successfully neutralized industrial bottlenecks by mapping field reality to ${jobDescription.slice(0, 50)}...
+        `.trim();
+
+        return markdown;
     }
 }
 

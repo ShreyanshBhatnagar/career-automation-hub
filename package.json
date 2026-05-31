@@ -3,22 +3,36 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
-    "start": "node api/server.js",
-    "init-db": "node database/init_db.js && node database/migrate.js",
-    "migrate": "node database/migrate.js",
-    "scan": "node agents/orchestrator.js",
-    "security:scan": "node scripts/scan-secrets.js"
+    "start":         "node api/server.js",
+    "init-db":       "node database/init.js && node database/migrate.js",
+    "migrate":       "node database/migrate.js",
+    "scan":          "node agents/orchestrator.js",
+    "worker:ingest": "node agents/worker.js",
+    "worker:agent":  "node agents/agent_worker.js",
+    "security:scan": "node scripts/scan-secrets.js",
+    "test":          "node --test scripts/test-relevance.js",
+    "lint":          "eslint . --ext .js --ignore-pattern node_modules"
   },
   "dependencies": {
-    "body-parser": "^1.20.3",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "helmet": "^8.0.0",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "sqlite3": "^5.1.7"
+    "body-parser": "1.20.3",
+    "bullmq": "5.76.10",
+    "cookie-parser": "1.4.7",
+    "dotenv": "16.4.7",
+    "express": "4.21.2",
+    "express-rate-limit": "7.5.0",
+    "helmet": "8.0.0",
+    "ioredis": "5.10.1",
+    "jsonwebtoken": "9.0.2",
+    "morgan": "1.10.0",
+    "sqlite3": "5.1.7"
+  },
+  "devDependencies": {
+    "playwright": "1.60.0",
+    "playwright-extra": "4.3.6",
+    "puppeteer-extra-plugin-stealth": "2.11.2"
   }
 }

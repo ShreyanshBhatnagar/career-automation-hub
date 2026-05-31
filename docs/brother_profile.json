@@ -1,32 +1,44 @@
 {
-  "name": "Brother",
-  "background": "Electrical Engineer with heavy on-site Solar & Substation experience.",
-  "target_roles": [
-    "PSCAD & MATLAB Simulations Engineer",
-    "Cost Manager / Project Controls",
-    "System Studies Engineer",
-    "Power System / Renewable Energy Consultant",
-    "Electrical Design Engineer",
-    "Project Coordinator / Monitoring Engineer",
-    "Contract Administrator"
+  "candidate": "The Brother",
+  "ontology_version": "3.1",
+  "leverage_points": [
+    {
+      "node": "Complex Industrial Implementation",
+      "atomic_skills": ["Contractor Management (50+ scale)", "Site Reconciliation", "Large-Scale Resource Allocation", "SAP/ERP Industrial Control"],
+      "transferable_leverage": ["Semiconductor Foundry Construction", "Data Center Power Infrastructure", "EV Mega-Charger Networks"]
+    },
+    {
+      "node": "High-Stakes Field Operations",
+      "atomic_skills": ["Remote Plant Management (Jaisalmer/Ramgarh context)", "Structural Safety Compliance", "On-site Crisis Resolution"],
+      "transferable_leverage": ["Heavy Industrial Automation", "Offshore Energy Ops", "Critical Utility Scaling"]
+    },
+    {
+      "node": "Commercial Project Governance",
+      "atomic_skills": ["Industrial Vendor Negotiation", "Service Order Governance", "CAPEX Margin Protection"],
+      "transferable_leverage": ["Mega-Scale Energy Procurement", "Industrial Supply Chain Strategic Ops", "Foundry Logistics"]
+    }
   ],
-  "technical_skills": [
-    "PSCAD (Fault analysis, Control Logic)",
-    "MATLAB (Renewable Energy, Power Electronics)",
-    "AutoCAD (3D, Electrical Machines)",
-    "SLD Interpretation",
-    "Power Systems (Protection & Switchgear)",
-    "Solar Power Plant Execution (AC/DC)"
+  "target_arbitrage_sectors": [
+    "Semiconductor Foundries",
+    "Data Center Infrastructure",
+    "EV Ecosystems",
+    "Heavy Industrial Automation",
+    "Mega-Scale Energy Projects",
+    "Industrial Supply Chains"
   ],
-  "commercial_skills": [
-    "Contract Administration (T&Cs, Service Items)",
-    "SAP (Service Order Analysis, Material Reservation)",
-    "Service Order Amendments (Time Extensions, Quantity)",
-    "BOQ Preparation",
-    "Vendor Management",
-    "Contract Closure (LD applicability, Work Completion Certs)"
+  "technical_nodes": [
+    "Electrical Engineering (Industrial Power)",
+    "SAP ERP (Operational Control)",
+    "Mega-Solar Site Execution",
+    "High-Voltage Compliance",
+    "PSCAD",
+    "ETAP",
+    "MATLAB"
   ],
-  "target_sectors": ["Solar", "Renewables", "Data Centers", "Transmission & Distribution (PSS)", "EPC"],
-  "locations": ["Ahmedabad", "Vadodara", "Mumbai", "Pune", "Hyderabad", "Bangalore", "Delhi NCR"],
-  "target_companies": ["Adani Green", "Adani Energy Solutions", "AdaniConneX", "EPC Vendors", "Renewable Consultants"]
+  "vibe_nodes": [
+    "Industrial Resilience",
+    "Direct Field Communication",
+    "Operational Ownership",
+    "Hard-Asset Execution"
+  ]
 }
