@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { smartFetch } from '../lib/fetch.js';
 import { upsertOpportunity } from '../lib/persist.js';
 
@@ -19,11 +20,12 @@ export async function scanSemiconductors(ctx) {
     ctx.log(`Running Track: ${trackName}. Ingesting signals post ${delta_t}`);
 
     const geoGrid = Object.values(profile.operational_boundaries.geographic_grid).flat();
+    const cityConstraint = geoGrid.join(' OR ');
 
     // Execution: Using industrial search queries constrained by regions
     const queries = [
-        `"Semiconductor" foundry hiring ${geoGrid.slice(0, 5).join(' OR ')}`,
-        `"Fab" construction project ${geoGrid.slice(5, 10).join(' OR ')}`
+        `"Semiconductor" foundry hiring ${cityConstraint}`,
+        `"Fab" construction project ${cityConstraint}`
     ];
 
     for (const q of queries) {
@@ -33,7 +35,7 @@ export async function scanSemiconductors(ctx) {
             await upsertOpportunity(ctx.db, ctx.run, {
                 company_name: 'Industrial Lead',
                 role_title: `Foundry Op: ${q.slice(0, 30)}`,
-                target_sector: sector,
+                target_sector: trackName,
                 metro_hub: geoGrid[0], // Map to primary hub
                 source_url: `https://discovery.industrial/${crypto.randomUUID()}`,
                 raw_job_payload: JSON.stringify({ query: q, timestamp: new Date().toISOString(), html_len: page.html.length }),

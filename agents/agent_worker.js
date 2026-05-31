@@ -42,14 +42,16 @@ const agentWorker = new Worker('agent-evaluation-queue', async (job) => {
 
     // 4. Persist score, match reasons, and tailored pitch
     const reasons = scoring.match_reasons.join(', ');
+    const coverage = agentResult.agent_a?.coverage_score ?? null;
     await run(db, `
       UPDATE opportunities
       SET relevance_score = ?,
           notes           = ?,
           status          = 'Analyzed',
-          tailored_pitch  = ?
+          tailored_pitch  = ?,
+          coverage_score  = ?
       WHERE id = ?
-    `, [scoring.relevance_score, reasons, agentResult.agent_c.tailored_pitch, id]);
+    `, [scoring.relevance_score, reasons, agentResult.agent_c.tailored_pitch, coverage, id]);
 
     logger.info('EVAL_WORKER', `Opportunity #${id} evaluated`, {
       source_target:  `${opp.company_name} — ${opp.role_title}`,

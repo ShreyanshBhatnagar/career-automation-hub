@@ -7,6 +7,9 @@ import path from 'path';
 import fs from 'fs';
 import { openDb, all, run, get } from '../database/db.js';
 import { runDeepScan } from '../agents/orchestrator.js';
+import { scanSemiconductors } from '../agents/scanners/track_semiconductors.js';
+import { scanRenewables } from '../agents/scanners/track_renewables.js';
+import { scanDataCenters } from '../agents/scanners/track_datacenters.js';
 import ResumeTailorAgent from '../agents/resume_tailor_agent.js';
 import MessageDrafterAgent from '../agents/message_drafter_agent.js';
 import { env, assertProductionSecrets } from './config/env.js';
@@ -93,9 +96,24 @@ app.use(express.static(path.resolve('./public')));
 
 app.get('/profile', requireUser, (req, res) => {
   try {
-    res.json(getProfile());
+    const profilePath = path.resolve('./config/profile_vault.json');
+    if (fs.existsSync(profilePath)) {
+        res.json(JSON.parse(fs.readFileSync(profilePath, 'utf8')));
+    } else {
+        res.json(getProfile());
+    }
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/profile', requireUser, (req, res) => {
+  const profilePath = path.resolve('./config/profile_vault.json');
+  try {
+    fs.writeFileSync(profilePath, JSON.stringify(req.body, null, 2));
+    res.json({ message: 'Profile updated successfully' });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
@@ -124,6 +142,20 @@ app.get('/leads', requireUser, withDb(async (db, req, res, done) => {
   done(null, rows);
 }));
 
+app.get('/export/inventory', requireUser, withDb(async (db, req, res, done) => {
+  const rows = await all(db, `SELECT * FROM opportunities ORDER BY created_at DESC`);
+  if (!rows.length) return res.status(404).send('No data to export');
+
+  const headers = Object.keys(rows[0]).join(',');
+  const csv = [headers, ...rows.map(r =>
+      Object.values(r).map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')
+  )].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=opportunity_inventory.csv');
+  res.status(200).send(csv);
+}));
+
 app.post('/api/opportunities/:id/tailor-resume', requireUser, withDb(async (db, req, res, done) => {
   const id = req.params.id;
   const opp = await get(db, `SELECT * FROM opportunities WHERE id = ?`, [id]);
@@ -134,6 +166,7 @@ app.post('/api/opportunities/:id/tailor-resume', requireUser, withDb(async (db, 
   const markdown = await tailor.generateMarkdownBlock(opp.description || opp.role_title, profilePath, req.body);
 
   await run(db, `UPDATE opportunities SET status = 'Reviewed' WHERE id = ?`, [id]);
+  await run(db, `PRAGMA wal_checkpoint(PASSIVE)`);
   done(null, { id, markdown, status: 'Success' });
 }));
 
@@ -148,6 +181,7 @@ app.post('/api/opportunities/:id/release', requireUser, withDb(async (db, req, r
   const opp = await get(db, `SELECT id, status FROM opportunities WHERE id = ?`, [id]);
   if (!opp) return done(new Error('Opportunity not found'), null, 404);
   await run(db, `UPDATE opportunities SET status = 'Applied', next_action = 'Follow up in 5 days' WHERE id = ?`, [id]);
+  await run(db, `PRAGMA wal_checkpoint(PASSIVE)`);
   done(null, { id, status: 'Applied', message: 'Application block released. Status → Applied.' });
 }));
 
@@ -312,6 +346,46 @@ app.post('/scan/run', strictWriteLimiter, requireUser, async (req, res) => {
         stack_trace:    e.stack,
         beyond_remarks: 'scanInProgress reset to false; last result recorded with error field',
       });
+    });
+});
+
+app.post('/scan/:track', strictWriteLimiter, requireUser, async (req, res) => {
+  const track = req.params.track;
+  if (scanInProgress) return res.status(409).json({ error: 'Another scan in progress' });
+
+  scanInProgress = true;
+  res.json({ message: `Track scan started: ${track}`, status: 'running' });
+
+  const db = openDb();
+  const ctx = {
+    db,
+    sessionId: `manual-${track}-${Date.now()}`,
+    log: (msg) => console.log(`[Track:${track}] ${msg}`),
+    run: run
+  };
+
+  const runners = {
+      semiconductors: scanSemiconductors,
+      renewables: scanRenewables,
+      datacenters: scanDataCenters
+  };
+
+  const runner = runners[track];
+  if (!runner) {
+      scanInProgress = false;
+      return;
+  }
+
+  runner(ctx)
+    .then(r => {
+        lastScanResult = { ...r, finishedAt: new Date().toISOString() };
+        scanInProgress = false;
+        db.close();
+    })
+    .catch(e => {
+        lastScanResult = { error: e.message, finishedAt: new Date().toISOString() };
+        scanInProgress = false;
+        db.close();
     });
 });
 

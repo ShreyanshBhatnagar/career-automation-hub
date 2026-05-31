@@ -3,1312 +3,226 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Career Execution Hub — Tri-Pane Workspace</title>
+  <title>Opportunity Map — Central Ops</title>
   <style>
-    /* ── Design tokens ─────────────────────────────────────────────────────── */
     :root {
-      --bg:        #07090d;
-      --surface:   #0f1520;
-      --surface2:  #161f2e;
-      --surface3:  #1c2840;
-      --border:    #243044;
-      --border2:   #2e3d56;
-      --text:      #dce6f0;
-      --muted:     #6b82a0;
-      --muted2:    #4a607a;
-      --accent:    #3d9cf5;
-      --accent2:   #1a6fc4;
-      --green:     #34d399;
-      --green-dim: #0d3d2a;
-      --amber:     #fbbf24;
-      --amber-dim: #3d2e08;
-      --red:       #f87171;
-      --red-dim:   #3d1212;
-      --purple:    #a78bfa;
-      --purple-dim:#2a1f4a;
-      --cyan:      #22d3ee;
-      --cyan-dim:  #0a2e36;
-      --pane-gap:  1px;
-      --header-h:  52px;
-      --toolbar-h: 44px;
+      --bg: #0a0e14; --surface: #141b26; --surface2: #1c2636;
+      --border: #2a3a52; --text: #e8edf4; --muted: #7d92ad;
+      --accent: #3d9cf5; --green: #34d399; --amber: #fbbf24; --red: #f87171; --industrial: #52637a;
+      --cyan: #22d3ee; --cyan-dim: rgba(34, 211, 238, 0.1);
+      --sidebar-w: 240px;
     }
-    /* ── Reset ─────────────────────────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
-      background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "SF Mono", "Fira Code", monospace; background: var(--bg); color: var(--text); line-height: 1.4; font-size: 0.85rem; display: flex; height: 100vh; overflow: hidden; }
+
+    .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 2px solid var(--industrial); display: flex; flex-direction: column; padding: 1.5rem; }
+    .sidebar h1 { font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2.5rem; }
+    .sidebar h1 span { color: var(--accent); }
+    .nav-item { color: var(--muted); text-decoration: none; padding: 0.8rem 1rem; border-radius: 4px; margin-bottom: 0.5rem; transition: all 0.2s; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .nav-item:hover, .nav-item.active { background: var(--surface2); color: var(--accent); }
+    .nav-item.active { border-left: 3px solid var(--accent); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    header { border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; background: var(--surface); }
+    #global-search {
+        width: 280px !important;
+        transition: all 0.3s;
+        box-shadow: 0 0 5px rgba(61, 156, 245, 0.1);
     }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    button, select, input {
-      font-family: inherit; font-size: 12px;
-      background: var(--surface2); border: 1px solid var(--border);
-      color: var(--text); border-radius: 5px; cursor: pointer;
+    #global-search:focus {
+        width: 320px !important;
+        box-shadow: 0 0 15px rgba(61, 156, 245, 0.4);
+        border-color: var(--accent);
+        outline: none;
     }
-    button { padding: 0.35rem 0.75rem; transition: filter 0.15s; }
-    button:hover:not(:disabled) { filter: brightness(1.15); }
-    button:disabled { opacity: 0.45; cursor: not-allowed; }
-    button.primary {
-      background: var(--accent); border-color: var(--accent);
-      color: #07090d; font-weight: 700;
-    }
-    button.ghost { background: transparent; border-color: var(--border2); color: var(--muted); }
-    button.ghost:hover { color: var(--text); border-color: var(--accent); }
-    input, select { padding: 0.35rem 0.6rem; }
-    input::placeholder { color: var(--muted2); }
-    select option { background: var(--surface2); }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-  </style>
-  <style>
-    /* ── Login overlay ─────────────────────────────────────────────────────── */
-    #login-overlay {
-      position: fixed; inset: 0; background: rgba(7,9,13,0.96);
-      display: flex; align-items: center; justify-content: center; z-index: 500;
-    }
+    .hstat { display: flex; flex-direction: column; align-items: center; }
+    .hstat .lbl { color: var(--muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .hstat .val { font-size: 1rem; font-weight: bold; }
+    .val.green { color: var(--green); }
+    .val.cyan { color: var(--cyan); }
+
+    .matrix-viewport { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .tri-pane { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--border); border-top: 1px solid var(--industrial); flex: 1; }
+    .pane { background: var(--bg); padding: 1.5rem; overflow-y: auto; }
+    .pane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--industrial); }
+    .pane-header h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--industrial); letter-spacing: 1px; }
+    .pane-count { font-size: 0.7rem; background: var(--surface2); padding: 0.1rem 0.5rem; border-radius: 10px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); padding: 1rem; margin-bottom: 1rem; }
+    .card h4 { color: var(--text); margin-bottom: 0.4rem; font-size: 0.9rem; }
+    .card .meta { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.8rem; display: flex; gap: 0.8rem; }
+    .score-tag { color: var(--green); font-weight: bold; }
+    .bridge-item { background: rgba(251, 191, 36, 0.05); border-left: 3px solid var(--amber); padding: 0.5rem; margin-top: 0.5rem; }
+    .bridge-label { font-size: 0.65rem; color: var(--amber); text-transform: uppercase; margin-bottom: 0.2rem; }
+    .outreach-box { font-size: 0.75rem; color: var(--muted); background: var(--surface2); padding: 0.75rem; border: 1px dashed var(--industrial); white-space: pre-wrap; }
+
+    .btn-export { background: var(--industrial); color: #fff; border: none; padding: 0.6rem 1.2rem; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.7rem; }
+
+    #login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
     #login-overlay.hidden { display: none; }
-    .login-box {
-      background: var(--surface); border: 1px solid var(--border2);
-      border-radius: 12px; padding: 2rem; width: min(380px, 94vw);
-    }
-    .login-box h2 { font-size: 1rem; margin-bottom: 1.25rem; color: var(--text); }
-    .login-box label { display: block; font-size: 0.7rem; color: var(--muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .login-box input { width: 100%; margin-bottom: 0.85rem; }
-    .login-err { color: var(--red); font-size: 0.75rem; min-height: 1.1rem; margin-bottom: 0.5rem; }
-
-    /* ── App shell ─────────────────────────────────────────────────────────── */
-    #app-main { display: flex; flex-direction: column; height: 100vh; }
-    #app-main.hidden { display: none; }
-
-    /* ── Global header ─────────────────────────────────────────────────────── */
-    #global-header {
-      height: var(--header-h); min-height: var(--header-h);
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 1rem;
-      padding: 0 1.25rem; background: var(--surface); flex-shrink: 0;
-    }
-    .wordmark { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.02em; }
-    .wordmark span { color: var(--accent); }
-    .wordmark sub { font-size: 0.55rem; color: var(--muted); font-weight: 400; vertical-align: baseline; margin-left: 2px; }
-    .header-stats { display: flex; gap: 0.5rem; flex: 1; }
-    .hstat {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 5px; padding: 0.2rem 0.6rem; font-size: 0.7rem;
-    }
-    .hstat .lbl { color: var(--muted); }
-    .hstat .val { font-weight: 700; margin-left: 0.3rem; }
-    .hstat .val.green { color: var(--green); }
-    .hstat .val.amber { color: var(--amber); }
-    .hstat .val.purple { color: var(--purple); }
-    .header-actions { display: flex; gap: 0.4rem; align-items: center; }
-
-    /* ── Scan banner ───────────────────────────────────────────────────────── */
-    #scan-banner {
-      background: var(--surface2); border-bottom: 1px solid var(--accent);
-      padding: 0.4rem 1.25rem; font-size: 0.75rem; display: none;
-      align-items: center; gap: 1rem; flex-shrink: 0;
-    }
-    #scan-banner.show { display: flex; }
-    #scan-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1s infinite; flex-shrink: 0; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-    /* ── Global toolbar ────────────────────────────────────────────────────── */
-    #global-toolbar {
-      height: var(--toolbar-h); min-height: var(--toolbar-h);
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0 1.25rem; background: var(--surface2); flex-shrink: 0; flex-wrap: wrap;
-    }
-    #global-toolbar label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-    #global-toolbar input[type="text"] { width: 200px; }
-
-    /* ── Tri-pane workspace ────────────────────────────────────────────────── */
-    #workspace {
-      flex: 1; display: grid; overflow: hidden;
-      grid-template-columns: 1fr var(--pane-gap) 1fr var(--pane-gap) 1fr;
-    }
-    .pane-divider { background: var(--border); }
-    .pane {
-      display: flex; flex-direction: column; overflow: hidden;
-      background: var(--bg);
-    }
-    .pane-header {
-      padding: 0.6rem 1rem; border-bottom: 1px solid var(--border);
-      background: var(--surface); flex-shrink: 0;
-      display: flex; align-items: center; gap: 0.6rem;
-    }
-    .pane-icon {
-      width: 22px; height: 22px; border-radius: 5px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.75rem; flex-shrink: 0;
-    }
-    .pane-title { font-size: 0.8rem; font-weight: 700; flex: 1; }
-    .pane-subtitle { font-size: 0.65rem; color: var(--muted); }
-    .pane-count {
-      font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.45rem;
-      border-radius: 10px; border: 1px solid;
-    }
-    .pane-toolbar {
-      padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border);
-      background: var(--surface2); flex-shrink: 0;
-      display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;
-    }
-    .pane-body { flex: 1; overflow-y: auto; padding: 0.75rem; }
-
-    /* ── Pane 1 — Direct Clearances ────────────────────────────────────────── */
-    #pane1 .pane-icon { background: var(--green-dim); color: var(--green); }
-    #pane1 .pane-title { color: var(--green); }
-    #pane1 .pane-count { color: var(--green); border-color: var(--green); background: var(--green-dim); }
-
-    /* ── Pane 2 — Project Lab ───────────────────────────────────────────────── */
-    #pane2 .pane-icon { background: var(--amber-dim); color: var(--amber); }
-    #pane2 .pane-title { color: var(--amber); }
-    #pane2 .pane-count { color: var(--amber); border-color: var(--amber); background: var(--amber-dim); }
-
-    /* ── Pane 3 — Outreach Vault ────────────────────────────────────────────── */
-    #pane3 .pane-icon { background: var(--purple-dim); color: var(--purple); }
-    #pane3 .pane-title { color: var(--purple); }
-    #pane3 .pane-count { color: var(--purple); border-color: var(--purple); background: var(--purple-dim); }
-  </style>
-  <style>
-    /* ── Opportunity cards (Pane 1 & 2) ────────────────────────────────────── */
-    .opp-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;
-      cursor: pointer; transition: border-color 0.15s, background 0.15s;
-      position: relative;
-    }
-    .opp-card:hover { border-color: var(--border2); background: var(--surface2); }
-    .opp-card.selected { border-color: var(--accent); }
-    .opp-card-top { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.4rem; }
-    .opp-card-company { font-weight: 700; font-size: 0.8rem; flex: 1; }
-    .score-pill {
-      font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem;
-      border-radius: 10px; flex-shrink: 0;
-    }
-    .score-pill.hi { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
-    .score-pill.mid { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
-    .score-pill.lo { background: var(--surface3); color: var(--muted); border: 1px solid var(--border); }
-    .opp-card-role { font-size: 0.78rem; color: var(--text); margin-bottom: 0.3rem; }
-    .opp-card-meta { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
-    .tag {
-      font-size: 0.62rem; padding: 0.1rem 0.4rem; border-radius: 4px;
-      border: 1px solid; display: inline-block;
-    }
-    .tag-sector { background: var(--cyan-dim); color: var(--cyan); border-color: var(--cyan); }
-    .tag-channel { background: var(--surface3); color: var(--muted); border-color: var(--border2); }
-    .tag-status { background: var(--surface3); color: var(--muted); border-color: var(--border2); }
-    .opp-card-snippet { font-size: 0.7rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.4; }
-    .opp-card-actions { display: flex; gap: 0.35rem; margin-top: 0.5rem; }
-    .opp-card-actions button { font-size: 0.65rem; padding: 0.2rem 0.5rem; }
-
-    /* ── Bridge cards (Pane 2) ──────────────────────────────────────────────── */
-    .bridge-card {
-      background: var(--amber-dim); border: 1px solid var(--amber);
-      border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;
-    }
-    .bridge-card-header {
-      display: flex; align-items: center; gap: 0.4rem;
-      font-size: 0.72rem; font-weight: 700; color: var(--amber); margin-bottom: 0.4rem;
-    }
-    .bridge-card-body { font-size: 0.72rem; color: var(--text); line-height: 1.5; }
-    .bridge-card-body .ats-line {
-      background: var(--surface3); border-left: 3px solid var(--amber);
-      padding: 0.4rem 0.6rem; border-radius: 0 4px 4px 0;
-      font-style: italic; margin: 0.4rem 0; font-size: 0.7rem;
-    }
-    .bro-note {
-      background: var(--surface); border: 1px solid var(--border2);
-      border-radius: 6px; padding: 0.5rem 0.65rem; margin-top: 0.5rem;
-      font-size: 0.7rem; color: var(--text); line-height: 1.5;
-    }
-    .bro-note strong { color: var(--amber); }
-    .learning-steps { margin-top: 0.4rem; padding-left: 1rem; }
-    .learning-steps li { font-size: 0.68rem; color: var(--muted); margin-bottom: 0.2rem; }
-
-    /* ── Outreach cards (Pane 3) ────────────────────────────────────────────── */
-    .contact-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;
-      transition: border-color 0.15s;
-    }
-    .contact-card:hover { border-color: var(--border2); }
-    .contact-card-top { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.4rem; }
-    .contact-avatar {
-      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-      background: var(--purple-dim); border: 1px solid var(--purple);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; font-weight: 700; color: var(--purple);
-    }
-    .contact-info { flex: 1; }
-    .contact-name { font-weight: 700; font-size: 0.8rem; }
-    .contact-title { font-size: 0.7rem; color: var(--muted); }
-    .contact-company { font-size: 0.7rem; color: var(--accent); }
-    .archetype-badge {
-      font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 4px;
-      background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple);
-      flex-shrink: 0;
-    }
-    .outreach-copy {
-      background: var(--surface2); border: 1px solid var(--border2);
-      border-radius: 6px; padding: 0.6rem 0.75rem; margin-top: 0.5rem;
-      font-size: 0.72rem; color: var(--text); line-height: 1.6;
-      white-space: pre-wrap; max-height: 160px; overflow-y: auto;
-    }
-    .outreach-copy.collapsed { max-height: 60px; overflow: hidden; }
-    .contact-card-actions { display: flex; gap: 0.35rem; margin-top: 0.5rem; flex-wrap: wrap; }
-    .contact-card-actions button { font-size: 0.65rem; padding: 0.2rem 0.5rem; }
-
-    /* ── Detail drawer (slides in from right) ───────────────────────────────── */
-    #detail-drawer {
-      position: fixed; top: 0; right: -520px; width: 520px; height: 100vh;
-      background: var(--surface); border-left: 1px solid var(--border2);
-      z-index: 300; transition: right 0.25s ease; overflow-y: auto;
-      display: flex; flex-direction: column;
-    }
-    #detail-drawer.open { right: 0; }
-    .drawer-header {
-      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
-      display: flex; align-items: flex-start; gap: 0.75rem; flex-shrink: 0;
-    }
-    .drawer-close {
-      background: none; border: none; color: var(--muted); font-size: 1.2rem;
-      cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0;
-    }
-    .drawer-close:hover { color: var(--text); }
-    .drawer-body { padding: 1.25rem; flex: 1; }
-    .drawer-section { margin-bottom: 1.5rem; }
-    .drawer-section h3 {
-      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
-      color: var(--muted); margin-bottom: 0.6rem; border-bottom: 1px solid var(--border);
-      padding-bottom: 0.3rem;
-    }
-    .drawer-section .body { font-size: 0.82rem; white-space: pre-wrap; line-height: 1.6; }
-    .pitch-block {
-      background: rgba(61,156,245,0.07); border: 1px solid rgba(61,156,245,0.25);
-      border-left: 3px solid var(--accent); border-radius: 6px;
-      padding: 0.75rem; font-size: 0.8rem; white-space: pre-wrap; line-height: 1.6;
-    }
-
-    /* ── Empty states ───────────────────────────────────────────────────────── */
-    .empty-state {
-      text-align: center; padding: 2.5rem 1rem; color: var(--muted);
-      border: 1px dashed var(--border2); border-radius: 8px;
-    }
-    .empty-state .icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
-    .empty-state p { font-size: 0.78rem; }
-
-    /* ── Loading skeleton ───────────────────────────────────────────────────── */
-    .skeleton {
-      background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
-      background-size: 200% 100%; animation: shimmer 1.4s infinite;
-      border-radius: 4px; height: 12px; margin-bottom: 6px;
-    }
-    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    .skeleton-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; }
-
-    /* ── Release Application Block button ──────────────────────────────────── */
-    .btn-release {
-      background: var(--green-dim); border: 1px solid var(--green);
-      color: var(--green); font-weight: 700; font-size: 0.65rem;
-      padding: 0.25rem 0.6rem; border-radius: 5px; cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
-    .btn-release:hover:not(:disabled) { background: var(--green); color: #07090d; filter: none; }
-    .btn-release:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn-release.released {
-      background: var(--surface3); border-color: var(--border2);
-      color: var(--muted); cursor: default;
-    }
-
-    /* ── Bridge card authorize panel ────────────────────────────────────────── */
-    .bridge-authorize {
-      margin-top: 0.5rem; border-top: 1px solid var(--border2); padding-top: 0.5rem;
-      display: none;
-    }
-    .bridge-authorize.open { display: block; }
-    .bridge-authorize textarea {
-      width: 100%; min-height: 72px; resize: vertical;
-      background: var(--surface3); border: 1px solid var(--border2);
-      color: var(--text); border-radius: 5px; padding: 0.4rem 0.5rem;
-      font-size: 0.7rem; line-height: 1.5; font-family: inherit;
-    }
-    .bridge-authorize-actions { display: flex; gap: 0.35rem; margin-top: 0.35rem; }
-    .btn-authorize {
-      background: var(--amber-dim); border: 1px solid var(--amber);
-      color: var(--amber); font-weight: 700; font-size: 0.65rem;
-      padding: 0.25rem 0.6rem; border-radius: 5px; cursor: pointer;
-    }
-    .btn-authorize:hover:not(:disabled) { background: var(--amber); color: #07090d; filter: none; }
-
-    /* ── Toast ──────────────────────────────────────────────────────────────── */
-    #toast {
-      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
-      background: var(--surface3); border: 1px solid var(--border2);
-      border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.78rem;
-      z-index: 400; opacity: 0; transition: opacity 0.2s; pointer-events: none;
-    }
-    #toast.show { opacity: 1; }
   </style>
 </head>
 <body>
-
-<!-- ── Login overlay ──────────────────────────────────────────────────────── -->
-<div id="login-overlay">
-  <div class="login-box">
-    <h2>Career Execution Hub</h2>
-    <form id="login-form">
-      <label for="username">Username</label>
-      <input id="username" name="username" autocomplete="username" required maxlength="64" />
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128" />
-      <p class="login-err" id="login-err"></p>
-      <button type="submit" class="primary" style="width:100%;margin-top:0.25rem">Sign in</button>
-    </form>
-  </div>
-</div>
-
-<!-- ── App shell ──────────────────────────────────────────────────────────── -->
-<div id="app-main" class="hidden">
-
-  <!-- Global header -->
-  <div id="global-header">
-    <div class="wordmark">Career <span>Hub</span><sub>v4</sub></div>
-    <div class="header-stats" id="header-stats">
-      <div class="hstat"><span class="lbl">Clearances</span><span class="val green" id="stat-clearances">—</span></div>
-      <div class="hstat"><span class="lbl">Lab Queue</span><span class="val amber" id="stat-lab">—</span></div>
-      <div class="hstat"><span class="lbl">Contacts</span><span class="val purple" id="stat-contacts">—</span></div>
-      <div class="hstat"><span class="lbl">Total Roles</span><span class="val" id="stat-total">—</span></div>
-      <div class="hstat"><span class="lbl">Last Scan</span><span class="val" id="stat-scan" style="font-size:0.65rem">—</span></div>
-    </div>
-    <div class="header-actions">
-      <button class="primary" id="btn-scan">▶ Run Scan</button>
-      <button class="ghost" id="btn-refresh">↺ Refresh</button>
-      <button class="ghost" id="btn-logout">Sign out</button>
+  <div id="login-overlay">
+    <div style="background: var(--surface); border: 1px solid var(--industrial); padding: 2rem; width: 320px;">
+      <h2 style="margin-bottom:1.5rem; font-size:0.9rem; text-transform:uppercase">Auth Gateway</h2>
+      <form id="login-form">
+        <input id="username" placeholder="OPERATOR_ID" style="width:100%; padding:0.6rem; margin-bottom:1rem; background:var(--bg); border:1px solid var(--border); color:var(--text);" required />
+        <input id="password" type="password" placeholder="ACCESS_KEY" style="width:100%; padding:0.6rem; margin-bottom:1rem; background:var(--bg); border:1px solid var(--border); color:var(--text);" required />
+        <button type="submit" style="width:100%; padding:0.6rem; background:var(--accent); color:var(--bg); border:none; font-weight:bold; cursor:pointer;">INITIALIZE</button>
+      </form>
     </div>
   </div>
 
-  <!-- Scan banner -->
-  <div id="scan-banner">
-    <div id="scan-pulse"></div>
-    <span id="scan-status-text">Deep scan running across all sources…</span>
-    <span id="scan-details" style="color:var(--accent);font-family:monospace;font-size:0.7rem"></span>
+  <div class="sidebar">
+      <h1>STRAT <span>OPS</span></h1>
+      <a href="/" class="nav-item active">Central Matrix</a>
+      <a href="/linkedin.html" class="nav-item">LinkedIn Portal</a>
+      <a href="/scanners.html" class="nav-item">Ingestion Control</a>
+      <a href="/profile.html" class="nav-item">Config Vault</a>
+      <div style="margin-top: auto;">
+          <button id="btn-logout" style="width:100%; background:none; border: 1px solid var(--industrial); color: var(--muted); padding: 0.5rem; font-size: 0.65rem; cursor:pointer">TERMINATE SESSION</button>
+      </div>
   </div>
 
-  <!-- Global filter toolbar -->
-  <div id="global-toolbar">
-    <label>Search</label>
-    <input type="text" id="search-input" placeholder="Company, role, location…" style="width:200px" />
-    <label>Source</label>
-    <select id="filter-channel">
-      <option value="">All channels</option>
-      <option value="linkedin">LinkedIn</option>
-      <option value="internal_careers">Careers Page</option>
-      <option value="hiring_site">Hiring Site</option>
-      <option value="duckduckgo">DuckDuckGo</option>
-      <option value="web">Web</option>
-      <option value="tender">Tender</option>
-    </select>
-    <label>Sector</label>
-    <select id="filter-sector"><option value="">All sectors</option></select>
-    <label>Min Score</label>
-    <select id="filter-score">
-      <option value="">Any</option>
-      <option value="0.6">0.6+</option>
-      <option value="0.75">0.75+</option>
-      <option value="0.85">0.85+</option>
-    </select>
-    <label>Posted</label>
-    <select id="filter-time">
-      <option value="">Any time</option>
-      <option value="1">24h</option>
-      <option value="3">3 days</option>
-      <option value="7">7 days</option>
-    </select>
-    <label>Exp</label>
-    <select id="filter-exp">
-      <option value="">All exp</option>
-      <option value="junior">0–3 yrs</option>
-      <option value="mid">3–7 yrs</option>
-      <option value="senior">7+ yrs</option>
-    </select>
-    <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;color:var(--muted)">
-      <input type="checkbox" id="filter-metro" /> Metro only
-    </label>
-  </div>
-
-  <!-- Tri-pane workspace -->
-  <div id="workspace">
-
-    <!-- ── Pane 1: Direct Clearances ──────────────────────────────────────── -->
-    <div class="pane" id="pane1">
-      <div class="pane-header">
-        <div class="pane-icon">✓</div>
-        <div>
-          <div class="pane-title">Direct Clearances</div>
-          <div class="pane-subtitle">Score ≥ 0.85 · No structural gaps · Ready to execute</div>
-        </div>
-        <span class="pane-count" id="p1-count">0</span>
-      </div>
-      <div class="pane-toolbar">
-        <select id="p1-sort" style="font-size:0.68rem">
-          <option value="score">Sort: Score ↓</option>
-          <option value="date">Sort: Newest</option>
-          <option value="company">Sort: Company A–Z</option>
-        </select>
-        <button class="ghost" id="p1-expand-all" style="font-size:0.65rem">Expand all</button>
-      </div>
-      <div class="pane-body" id="pane1-body">
-        <div class="skeleton-card"><div class="skeleton" style="width:60%"></div><div class="skeleton" style="width:40%"></div></div>
-        <div class="skeleton-card"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:35%"></div></div>
-      </div>
-    </div>
-
-    <div class="pane-divider"></div>
-
-    <!-- ── Pane 2: Project Lab ─────────────────────────────────────────────── -->
-    <div class="pane" id="pane2">
-      <div class="pane-header">
-        <div class="pane-icon">⚗</div>
-        <div>
-          <div class="pane-title">The Project Lab</div>
-          <div class="pane-subtitle">Score 0.5–0.84 · Bridge Cards active · Skill delta visible</div>
-        </div>
-        <span class="pane-count" id="p2-count">0</span>
-      </div>
-      <div class="pane-toolbar">
-        <select id="p2-sort" style="font-size:0.68rem">
-          <option value="score">Sort: Score ↓</option>
-          <option value="gaps">Sort: Fewest gaps</option>
-          <option value="date">Sort: Newest</option>
-        </select>
-        <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;color:var(--muted);font-size:0.68rem">
-          <input type="checkbox" id="p2-show-bridges" checked /> Show Bridge Cards
-        </label>
-      </div>
-      <div class="pane-body" id="pane2-body">
-        <div class="skeleton-card"><div class="skeleton" style="width:55%"></div><div class="skeleton" style="width:45%"></div></div>
-        <div class="skeleton-card"><div class="skeleton" style="width:65%"></div><div class="skeleton" style="width:30%"></div></div>
-      </div>
-    </div>
-
-    <div class="pane-divider"></div>
-
-    <!-- ── Pane 3: Outreach Vault ──────────────────────────────────────────── -->
-    <div class="pane" id="pane3">
-      <div class="pane-header">
-        <div class="pane-icon">✉</div>
-        <div>
-          <div class="pane-title">Outreach Vault</div>
-          <div class="pane-subtitle">Recruiter profiles · Archetype-mapped outreach copy</div>
-        </div>
-        <span class="pane-count" id="p3-count">0</span>
-      </div>
-      <div class="pane-toolbar">
-        <input type="text" id="p3-search" placeholder="Search contacts…" style="width:160px;font-size:0.68rem" />
-        <select id="p3-archetype" style="font-size:0.68rem">
-          <option value="">All archetypes</option>
-          <option value="execution">Execution-dense</option>
-          <option value="team">Team-heavy</option>
-          <option value="founder">Founder</option>
-        </select>
-        <button class="ghost" id="p3-draft-all" style="font-size:0.65rem">Draft all</button>
-      </div>
-      <div class="pane-body" id="pane3-body">
-        <div class="skeleton-card"><div class="skeleton" style="width:50%"></div><div class="skeleton" style="width:70%"></div></div>
-        <div class="skeleton-card"><div class="skeleton" style="width:60%"></div><div class="skeleton" style="width:40%"></div></div>
-      </div>
-    </div>
-
-  </div><!-- /workspace -->
-
-</div><!-- /app-main -->
-
-<!-- ── Detail drawer ──────────────────────────────────────────────────────── -->
-<div id="detail-drawer">
-  <div class="drawer-header">
-    <div style="flex:1">
-      <div id="drawer-title" style="font-size:0.95rem;font-weight:700;margin-bottom:0.2rem"></div>
-      <div id="drawer-meta" style="font-size:0.72rem;color:var(--muted);display:flex;gap:0.75rem;flex-wrap:wrap"></div>
-    </div>
-    <button class="drawer-close" onclick="closeDrawer()">✕</button>
-  </div>
-  <div class="drawer-body" id="drawer-body"></div>
-</div>
-
-<!-- ── Toast ──────────────────────────────────────────────────────────────── -->
-<div id="toast"></div>
-
-<script>
-// ── State ──────────────────────────────────────────────────────────────────
-let allRoles   = [];
-let allLeads   = [];
-let draftCache = {};   // contactId → drafted message
-let scanPoll   = null;
-
-const METRO_CITIES = [
-  'ahmedabad','vadodara','mumbai','pune','hyderabad','bangalore','delhi',
-  'noida','gurgaon','ncr','chennai','kolkata','surat','jaipur','lucknow',
-  'kanpur','nagpur','indore','thane','bhopal','visakhapatnam','patna',
-  'ghaziabad','ludhiana','coimbatore',
-];
-
-// ── API helper ─────────────────────────────────────────────────────────────
-async function api(path, options = {}) {
-  const res = await fetch(path, {
-    credentials: 'include',
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-  });
-  if (res.status === 401) { showLogin('Session expired. Sign in again.'); throw new Error('Unauthorized'); }
-  if (res.status === 429) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Rate limit exceeded'); }
-  return res;
-}
-
-// ── Auth ───────────────────────────────────────────────────────────────────
-function showLogin(msg) {
-  document.getElementById('login-overlay').classList.remove('hidden');
-  document.getElementById('app-main').classList.add('hidden');
-  if (msg) document.getElementById('login-err').textContent = msg;
-}
-function showApp() {
-  document.getElementById('login-overlay').classList.add('hidden');
-  document.getElementById('app-main').classList.remove('hidden');
-  document.getElementById('login-err').textContent = '';
-}
-async function checkSession() {
-  const res = await fetch('/auth/me', { credentials: 'include' });
-  if (res.ok) { showApp(); return true; }
-  showLogin(); return false;
-}
-
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('username').value.trim().slice(0, 64);
-  const password = document.getElementById('password').value.slice(0, 128);
-  const errEl = document.getElementById('login-err');
-  errEl.textContent = '';
-  try {
-    const res = await fetch('/auth/login', {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { errEl.textContent = data.error || 'Login failed'; return; }
-    showApp();
-    await loadAll();
-  } catch { errEl.textContent = 'Network error'; }
-});
-
-document.getElementById('btn-logout').addEventListener('click', async () => {
-  await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-  showLogin();
-});
-
-// ── Toast ──────────────────────────────────────────────────────────────────
-let toastTimer;
-function toast(msg, duration = 2500) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function esc(s) {
-  const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML;
-}
-function scoreClass(n) {
-  if (n >= 0.85) return 'hi';
-  if (n >= 0.5)  return 'mid';
-  return 'lo';
-}
-function fmtScore(n) {
-  return n != null ? Number(n).toFixed(2) : '—';
-}
-function fmtDate(ts) {
-  if (!ts) return '—';
-  const d = new Date(ts);
-  return isNaN(d) ? '—' : d.toLocaleDateString('en-IN', { day:'numeric', month:'short' });
-}
-function initials(name) {
-  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-}
-function inferArchetype(contact) {
-  const t = (contact.designation || '').toLowerCase();
-  if (/founder|ceo|cto|director|vp|head/i.test(t)) return 'founder';
-  if (/team|people|hr|talent|culture/i.test(t)) return 'team';
-  return 'execution';
-}
-</script>
-
-<script>
-// ── Filter logic ───────────────────────────────────────────────────────────
-function getFilters() {
-  return {
-    query:     (document.getElementById('search-input')?.value || '').toLowerCase(),
-    channel:   document.getElementById('filter-channel').value,
-    sector:    document.getElementById('filter-sector').value,
-    minScore:  document.getElementById('filter-score').value,
-    timeLimit: document.getElementById('filter-time').value,
-    exp:       document.getElementById('filter-exp').value,
-    metroOnly: document.getElementById('filter-metro').checked,
-  };
-}
-
-function parseRelativeDate(text) {
-  const now = new Date();
-  const m = (text || '').match(/(\d+)\s*(hour|day|week|month)s?\s*ago/i);
-  if (!m) return null;
-  const n = parseInt(m[1]), u = m[2].toLowerCase();
-  if (u.startsWith('hour'))  return new Date(now - n * 3600000);
-  if (u.startsWith('day'))   return new Date(now - n * 86400000);
-  if (u.startsWith('week'))  return new Date(now - n * 604800000);
-  if (u.startsWith('month')) return new Date(now - n * 2592000000);
-  return null;
-}
-
-function applyFilters(roles) {
-  const f = getFilters();
-  return roles.filter(r => {
-    if (f.channel && r.source_channel !== f.channel) return false;
-    if (f.minScore && (r.relevance_score || 0) < Number(f.minScore)) return false;
-    if (f.sector && (r.sector || '').toLowerCase() !== f.sector) return false;
-    const text = `${r.company_name} ${r.role_title} ${r.location} ${r.notes} ${r.sector}`.toLowerCase();
-    if (f.query && !text.includes(f.query)) return false;
-    if (f.timeLimit) {
-      const days = Number(f.timeLimit);
-      const relDate = parseRelativeDate(r.notes || '');
-      const ts = r.posted_at || relDate || r.last_scanned_at || r.created_at;
-      if (ts && Date.now() - new Date(ts).getTime() > days * 86400000) return false;
-    }
-    if (f.exp) {
-      const yMatch = text.match(/(\d+)\+?\s*years?/);
-      const yrs = yMatch ? parseInt(yMatch[1]) : null;
-      if (yrs !== null) {
-        if (f.exp === 'junior' && yrs > 3)          return false;
-        if (f.exp === 'mid'    && (yrs < 3 || yrs > 7)) return false;
-        if (f.exp === 'senior' && yrs < 7)           return false;
-      }
-    }
-    if (f.metroOnly) {
-      const loc = (r.location || '').toLowerCase();
-      if (!METRO_CITIES.some(c => loc.includes(c))) return false;
-    }
-    return true;
-  });
-}
-
-// Partition roles into pane buckets
-function partitionRoles(roles) {
-  const filtered = applyFilters(roles);
-  const clearances = filtered.filter(r => (r.relevance_score || 0) >= 0.85);
-  const lab        = filtered.filter(r => {
-    const s = r.relevance_score || 0;
-    return s >= 0.5 && s < 0.85;
-  });
-  return { clearances, lab };
-}
-
-// ── Pane 1 render ──────────────────────────────────────────────────────────
-function sortRoles(roles, sortVal) {
-  const copy = [...roles];
-  if (sortVal === 'date') copy.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  else if (sortVal === 'company') copy.sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
-  else copy.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
-  return copy;
-}
-
-// ── Released state cache (survives re-renders within session) ─────────────
-const releasedIds = new Set();
-
-function renderPane1(roles) {
-  const sort = document.getElementById('p1-sort').value;
-  const sorted = sortRoles(roles, sort);
-  const body = document.getElementById('pane1-body');
-  document.getElementById('p1-count').textContent = sorted.length;
-
-  if (!sorted.length) {
-    body.innerHTML = `<div class="empty-state"><div class="icon">✓</div><p>No high-confidence matches yet.<br>Run a scan or lower the score filter.</p></div>`;
-    return;
-  }
-
-  body.innerHTML = sorted.map(r => {
-    const isReleased = releasedIds.has(r.id) || r.status === 'Applied';
-    return `
-    <div class="opp-card" onclick="openRoleDrawer(${r.id})">
-      <div class="opp-card-top">
-        <div class="opp-card-company">${esc(r.company_name)}</div>
-        <span class="score-pill hi">${fmtScore(r.relevance_score)}</span>
-      </div>
-      <div class="opp-card-role">${esc(r.role_title)}</div>
-      <div class="opp-card-meta">
-        ${r.sector ? `<span class="tag tag-sector">${esc(r.sector)}</span>` : ''}
-        <span class="tag tag-channel">${esc(r.source_channel || 'web')}</span>
-        <span class="tag tag-status">${esc(r.location || 'Remote')}</span>
-        <span class="tag tag-status">${fmtDate(r.posted_at || r.created_at)}</span>
-        ${isReleased ? `<span class="tag" style="background:var(--green-dim);color:var(--green);border-color:var(--green)">✓ Applied</span>` : ''}
-      </div>
-      <div class="opp-card-snippet">${esc((r.description || r.notes || '').slice(0, 110))}…</div>
-      <div class="opp-card-actions">
-        <button onclick="event.stopPropagation();openRoleDrawer(${r.id})" class="ghost">View pitch</button>
-        <button
-          onclick="event.stopPropagation();releaseBlock(${r.id},this)"
-          class="btn-release${isReleased ? ' released' : ''}"
-          ${isReleased ? 'disabled' : ''}
-        >${isReleased ? '✓ Block Released' : '⚡ Release Application Block'}</button>
-        ${r.tailored_pitch ? '' : `<button onclick="event.stopPropagation();tailorRole(${r.id},this)" class="ghost">Generate pitch</button>`}
-      </div>
-    </div>
-  `}).join('');
-}
-
-async function releaseBlock(id, btn) {
-  btn.disabled = true; btn.textContent = 'Releasing…';
-  try {
-    await api(`/api/opportunities/${id}/release`, { method: 'POST' });
-    releasedIds.add(id);
-    const role = allRoles.find(r => r.id === id);
-    if (role) role.status = 'Applied';
-    toast('Application block released — status set to Applied');
-    const { clearances } = partitionRoles(allRoles);
-    renderPane1(clearances);
-  } catch (e) {
-    toast(`Release failed: ${e.message}`);
-    btn.disabled = false; btn.textContent = '⚡ Release Application Block';
-  }
-}
-</script>
-
-<script>
-// ── Pane 2 render ──────────────────────────────────────────────────────────
-
-/**
- * Parse bridge cards out of the tailored_pitch markdown.
- * Looks for "### Bridge Card: <tool>" sections.
- */
-function parseBridgeCards(pitch) {
-  if (!pitch) return [];
-  const cards = [];
-  const sections = pitch.split(/(?=###\s+Bridge Card:)/g);
-  for (const sec of sections) {
-    if (!sec.startsWith('### Bridge Card:')) continue;
-    const titleMatch = sec.match(/###\s+Bridge Card:\s*(.+)/);
-    const tool = titleMatch ? titleMatch[1].trim() : 'Unknown Tool';
-
-    const atsMatch = sec.match(/\*\*ATS Framing[^*]*\*\*[^\n]*\n+>\s*(.+)/);
-    const atsFraming = atsMatch ? atsMatch[1].trim() : '';
-
-    const broMatch = sec.match(/\*\*(Bro,[^*]+)\*\*/);
-    const broNote = broMatch ? broMatch[1].trim() : '';
-
-    const stepsMatch = sec.match(/\*\*2-Day Learning Path:\*\*\n([\s\S]+?)(?:\n\n|$)/);
-    const steps = stepsMatch
-      ? stepsMatch[1].split('\n').filter(l => l.trim()).map(l => l.replace(/^>\s*\d+\.\s*/, '').trim())
-      : [];
-
-    cards.push({ tool, atsFraming, broNote, steps });
-  }
-  return cards;
-}
-
-function renderBridgeCards(cards, showBridges, oppId) {
-  if (!showBridges || !cards.length) return '';
-  return cards.map((c, idx) => {
-    const panelId = `bc-panel-${oppId}-${idx}`;
-    const taId    = `bc-ta-${oppId}-${idx}`;
-    return `
-    <div class="bridge-card">
-      <div class="bridge-card-header">
-        <span>⚡</span> Bridge Card — ${esc(c.tool)}
-        <button
-          onclick="event.stopPropagation();toggleBridgeEdit('${panelId}')"
-          class="ghost" style="margin-left:auto;font-size:0.6rem;padding:0.1rem 0.4rem"
-        >Edit / Authorize</button>
-      </div>
-      <div class="bridge-card-body">
-        ${c.atsFraming ? `<div class="ats-line">${esc(c.atsFraming)}</div>` : ''}
-        ${c.broNote ? `
-          <div class="bro-note">
-            <strong>→ ${esc(c.broNote)}</strong>
-            ${c.steps.length ? `<ol class="learning-steps">${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
+  <div class="main-content" id="app-main">
+    <header>
+      <div style="display:flex; gap: 1.5rem; align-items: center;">
+          <input type="text" id="global-search" placeholder="SEARCH_POOLS..." style="background: var(--surface2); border: 1px solid var(--industrial); color: var(--text); padding: 0.5rem; font-family: monospace; font-size: 0.75rem;" />
+          <select id="filter-metro" style="background: var(--surface2); border: 1px solid var(--industrial); color: var(--muted); padding: 0.5rem; font-size: 0.7rem;">
+              <option value="">ALL_METROS</option>
+          </select>
+          <select id="filter-posted" style="background: var(--surface2); border: 1px solid var(--industrial); color: var(--muted); padding: 0.5rem; font-size: 0.7rem;">
+              <option value="">ALL_POSTED</option>
+              <option value="1">PAST_24H</option>
+              <option value="3">PAST_3D</option>
+              <option value="7">PAST_7D</option>
+          </select>
+          <div class="hstat">
+            <span class="lbl">Clearances</span>
+            <span class="val green" id="stat-clearances">0</span>
           </div>
-        ` : ''}
-      </div>
-      <div class="bridge-authorize" id="${panelId}">
-        <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.3rem">
-          Edit the project inclusion context below, then authorize to save it back to the DB.
-        </div>
-        <textarea id="${taId}" placeholder="Add your project context, override the ATS framing, or note what you've already learned…">${esc(c.atsFraming || '')}</textarea>
-        <div class="bridge-authorize-actions">
-          <button class="btn-authorize" onclick="event.stopPropagation();authorizeBridge(${oppId},'${taId}',this)">
-            ✓ Authorize &amp; Save
-          </button>
-          <button class="ghost" style="font-size:0.65rem" onclick="event.stopPropagation();toggleBridgeEdit('${panelId}')">Cancel</button>
-        </div>
-      </div>
-    </div>
-  `}).join('');
-}
-
-function toggleBridgeEdit(panelId) {
-  const el = document.getElementById(panelId);
-  if (el) el.classList.toggle('open');
-}
-
-async function authorizeBridge(oppId, taId, btn) {
-  const ta = document.getElementById(taId);
-  if (!ta) return;
-  const context = ta.value.trim();
-  const orig = btn.textContent;
-  btn.textContent = 'Saving…'; btn.disabled = true;
-  try {
-    await api(`/api/opportunities/${oppId}/authorize-bridge`, {
-      method: 'POST',
-      body: JSON.stringify({ bridge_context: context }),
-    });
-    // Update local notes cache so re-renders reflect the change
-    const role = allRoles.find(r => r.id === oppId);
-    if (role) role.notes = context;
-    toast('Bridge context authorized and saved to DB');
-    btn.textContent = '✓ Saved'; btn.disabled = false;
-    // Close the panel after a beat
-    setTimeout(() => {
-      const panel = ta.closest('.bridge-authorize');
-      if (panel) panel.classList.remove('open');
-      btn.textContent = '✓ Authorize & Save';
-    }, 1200);
-  } catch (e) {
-    toast(`Save failed: ${e.message}`);
-    btn.textContent = orig; btn.disabled = false;
-  }
-}
-
-function renderPane2(roles) {
-  const sortVal = document.getElementById('p2-sort').value;
-  const showBridges = document.getElementById('p2-show-bridges').checked;
-
-  let sorted = [...roles];
-  if (sortVal === 'date') sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  else sorted.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
-
-  const body = document.getElementById('pane2-body');
-  document.getElementById('p2-count').textContent = sorted.length;
-
-  if (!sorted.length) {
-    body.innerHTML = `<div class="empty-state"><div class="icon">⚗</div><p>No roles in the lab queue.<br>Roles scoring 0.5–0.84 appear here.</p></div>`;
-    return;
-  }
-
-  body.innerHTML = sorted.map(r => {
-    const cards = parseBridgeCards(r.tailored_pitch);
-    const gapCount = cards.length;
-    const scoreVal = r.relevance_score || 0;
-    const pillClass = scoreVal >= 0.7 ? 'mid' : 'lo';
-
-    return `
-      <div class="opp-card" onclick="openRoleDrawer(${r.id})">
-        <div class="opp-card-top">
-          <div class="opp-card-company">${esc(r.company_name)}</div>
-          <span class="score-pill ${pillClass}">${fmtScore(r.relevance_score)}</span>
-        </div>
-        <div class="opp-card-role">${esc(r.role_title)}</div>
-        <div class="opp-card-meta">
-          ${r.sector ? `<span class="tag tag-sector">${esc(r.sector)}</span>` : ''}
-          <span class="tag tag-channel">${esc(r.source_channel || 'web')}</span>
-          <span class="tag tag-status">${esc(r.location || 'Remote')}</span>
-          ${gapCount > 0 ? `<span class="tag" style="background:var(--amber-dim);color:var(--amber);border-color:var(--amber)">⚡ ${gapCount} gap${gapCount > 1 ? 's' : ''}</span>` : ''}
-        </div>
-        <div class="opp-card-snippet">${esc((r.description || r.notes || '').slice(0, 100))}…</div>
-        ${renderBridgeCards(cards, showBridges, r.id)}
-        <div class="opp-card-actions">
-          <button onclick="event.stopPropagation();openRoleDrawer(${r.id})" class="ghost">Full analysis</button>
-          ${!r.tailored_pitch ? `<button onclick="event.stopPropagation();tailorRole(${r.id},this)" class="ghost">Run Tailor Agent</button>` : ''}
-          <a href="${esc(r.source_url || '#')}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
-            <button class="ghost" style="font-size:0.65rem;padding:0.2rem 0.5rem">Source →</button>
-          </a>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-</script>
-
-<script>
-// ── Pane 3 render ──────────────────────────────────────────────────────────
-function renderPane3(leads) {
-  const query     = (document.getElementById('p3-search')?.value || '').toLowerCase();
-  const archetype = document.getElementById('p3-archetype').value;
-  const body      = document.getElementById('pane3-body');
-
-  const filtered = leads.filter(l => {
-    const text = `${l.person_name} ${l.company_name} ${l.designation}`.toLowerCase();
-    if (query && !text.includes(query)) return false;
-    if (archetype && inferArchetype(l) !== archetype) return false;
-    return true;
-  });
-
-  document.getElementById('p3-count').textContent = filtered.length;
-
-  if (!filtered.length) {
-    body.innerHTML = `<div class="empty-state"><div class="icon">✉</div><p>No contacts in the vault yet.<br>Contacts are captured during scans.</p></div>`;
-    return;
-  }
-
-  body.innerHTML = filtered.map(l => {
-    const arch = inferArchetype(l);
-    const archLabel = { founder: 'Founder / Exec', team: 'Team-heavy', execution: 'Execution-dense' }[arch] || arch;
-    const draft = draftCache[l.id];
-
-    return `
-      <div class="contact-card" id="contact-card-${l.id}">
-        <div class="contact-card-top">
-          <div class="contact-avatar">${esc(initials(l.person_name))}</div>
-          <div class="contact-info">
-            <div class="contact-name">${esc(l.person_name)}</div>
-            <div class="contact-title">${esc(l.designation || '—')}</div>
-            <div class="contact-company">${esc(l.company_name || '—')}</div>
+          <div class="hstat">
+            <span class="lbl">High Coverage</span>
+            <span class="val cyan" id="stat-coverage">—</span>
           </div>
-          <span class="archetype-badge">${esc(archLabel)}</span>
-        </div>
-        ${l.inferred_connection_reason ? `<div style="font-size:0.68rem;color:var(--muted);margin-bottom:0.4rem">${esc(l.inferred_connection_reason)}</div>` : ''}
-        ${draft ? `
-          <div class="outreach-copy collapsed" id="copy-${l.id}">${esc(draft)}</div>
-          <button onclick="toggleCopy(${l.id})" class="ghost" style="font-size:0.62rem;margin-top:0.3rem">Expand / Collapse</button>
-        ` : ''}
-        <div class="contact-card-actions">
-          <button onclick="draftOutreach(${l.id}, this)" class="ghost" ${draft ? 'style="color:var(--green)"' : ''}>
-            ${draft ? '✓ Re-draft' : '✉ Draft outreach'}
-          </button>
-          <button onclick="copyToClipboard(${l.id})" class="ghost" ${!draft ? 'disabled' : ''}>Copy</button>
-          ${l.profile_url ? `<a href="${esc(l.profile_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><button class="ghost">Profile →</button></a>` : ''}
-        </div>
       </div>
-    `;
-  }).join('');
-}
+      <button class="btn-export" onclick="exportInventory()">Export Data Inventory</button>
+    </header>
 
-function toggleCopy(id) {
-  const el = document.getElementById(`copy-${id}`);
-  if (el) el.classList.toggle('collapsed');
-}
+    <div class="matrix-viewport">
+        <div class="tri-pane">
+            <div class="pane" id="pane-clearances">
+                <div class="pane-header"><h3>Direct Clearances</h3><span class="pane-count" id="count-clear">0</span></div>
+                <div id="feed-clearances"></div>
+            </div>
+            <div class="pane" id="pane-bridge">
+                <div class="pane-header"><h3>Project Bridge Lab</h3><span class="pane-count" id="count-bridge">0</span></div>
+                <div id="feed-bridge"></div>
+            </div>
+            <div class="pane" id="pane-outreach">
+                <div class="pane-header"><h3>Outreach Vault</h3><span class="pane-count" id="count-outreach">0</span></div>
+                <div id="feed-outreach"></div>
+            </div>
+        </div>
+    </div>
+  </div>
 
-async function copyToClipboard(id) {
-  const text = draftCache[id];
-  if (!text) return;
-  try {
-    await navigator.clipboard.writeText(text);
-    toast('Copied to clipboard');
-  } catch { toast('Copy failed — select text manually'); }
-}
-
-// ── Outreach draft action ──────────────────────────────────────────────────
-async function draftOutreach(contactId, btn) {
-  const contact = allLeads.find(l => l.id === contactId);
-  if (!contact) return;
-
-  const orig = btn.textContent;
-  btn.textContent = 'Drafting…'; btn.disabled = true;
-
-  try {
-    // Find the best matching opportunity for this contact's company.
-    // Fall back to the highest-scored role if no company match exists.
-    const companyLower = (contact.company_name || '').toLowerCase();
-    const matchedOpp = allRoles.find(r =>
-      companyLower && (r.company_name || '').toLowerCase().includes(companyLower)
-    ) || allRoles[0];
-
-    if (!matchedOpp?.id) {
-      toast('No opportunity context available — run a scan first');
-      btn.textContent = orig; btn.disabled = false;
-      return;
+  <script>
+    let allData = [];
+    async function api(path, options = {}) {
+      const res = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+      if (res.status === 401) { location.reload(); }
+      return res;
     }
-
-    const res = await api(`/api/opportunities/${matchedOpp.id}/draft-outreach`, { method: 'POST' });
-    const data = await res.json();
-    draftCache[contactId] = data.message || 'Draft unavailable.';
-    toast('Outreach drafted');
-    renderPane3(allLeads);
-  } catch (e) {
-    toast(`Draft failed: ${e.message}`);
-    btn.textContent = orig; btn.disabled = false;
-  }
-}
-
-// ── Draft all contacts ─────────────────────────────────────────────────────
-document.getElementById('p3-draft-all').addEventListener('click', async () => {
-  const btn = document.getElementById('p3-draft-all');
-  btn.textContent = 'Drafting…'; btn.disabled = true;
-  const undrafted = allLeads.filter(l => !draftCache[l.id]).slice(0, 10);
-  let drafted = 0;
-  for (const l of undrafted) {
-    try {
-      const companyLower = (l.company_name || '').toLowerCase();
-      const opp = allRoles.find(r =>
-        companyLower && (r.company_name || '').toLowerCase().includes(companyLower)
-      ) || allRoles[0];
-      if (!opp?.id) continue;
-      const res = await api(`/api/opportunities/${opp.id}/draft-outreach`, { method: 'POST' });
-      const data = await res.json();
-      draftCache[l.id] = data.message || '';
-      drafted++;
-    } catch { /* continue to next contact */ }
-  }
-  btn.textContent = 'Draft all'; btn.disabled = false;
-  renderPane3(allLeads);
-  toast(`Drafted ${drafted} message${drafted !== 1 ? 's' : ''}`);
-});
-</script>
-
-<script>
-// ── Tailor role action ─────────────────────────────────────────────────────
-async function tailorRole(id, btn) {
-  const orig = btn.textContent;
-  btn.textContent = 'Running…'; btn.disabled = true;
-  try {
-    const res = await api(`/api/opportunities/${id}/tailor-resume`, { method: 'POST' });
-    const data = await res.json();
-    // Update local cache
-    const role = allRoles.find(r => r.id === id);
-    if (role) role.tailored_pitch = data.markdown;
-    toast('Tailor Agent complete');
-    renderAll();
-  } catch (e) {
-    toast(`Tailor failed: ${e.message}`);
-    btn.textContent = orig; btn.disabled = false;
-  }
-}
-
-// ── Detail drawer ──────────────────────────────────────────────────────────
-function openRoleDrawer(id) {
-  const r = allRoles.find(x => x.id === id);
-  if (!r) return;
-
-  document.getElementById('drawer-title').textContent = r.role_title;
-  document.getElementById('drawer-meta').innerHTML = `
-    <span>${esc(r.company_name)}</span>
-    <span>${esc(r.location || 'Remote')}</span>
-    <span>Score: <strong style="color:${(r.relevance_score||0)>=0.85?'var(--green)':'var(--amber)'}">${fmtScore(r.relevance_score)}</strong></span>
-    <span>${fmtDate(r.posted_at || r.created_at)}</span>
-    ${r.source_url ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">Source →</a>` : ''}
-  `;
-
-  const cards = parseBridgeCards(r.tailored_pitch);
-
-  document.getElementById('drawer-body').innerHTML = `
-    ${r.tailored_pitch ? `
-      <div class="drawer-section">
-        <h3>Tailored Pitch — Agent Output</h3>
-        <div class="pitch-block">${esc(r.tailored_pitch)}</div>
-      </div>
-    ` : `
-      <div class="drawer-section">
-        <h3>Tailored Pitch</h3>
-        <div style="color:var(--muted);font-size:0.8rem">No pitch generated yet.
-          <button onclick="tailorRole(${r.id}, this)" class="ghost" style="margin-left:0.5rem">Run Tailor Agent</button>
-        </div>
-      </div>
-    `}
-    ${cards.length ? `
-      <div class="drawer-section">
-        <h3>Bridge Cards (${cards.length})</h3>
-        ${renderBridgeCards(cards, true, r.id)}
-      </div>
-    ` : ''}
-    ${r.requirements ? `
-      <div class="drawer-section">
-        <h3>Requirements</h3>
-        <div class="body">${esc(r.requirements)}</div>
-      </div>
-    ` : ''}
-    ${r.description ? `
-      <div class="drawer-section">
-        <h3>Description</h3>
-        <div class="body">${esc(r.description)}</div>
-      </div>
-    ` : ''}
-    ${r.notes ? `
-      <div class="drawer-section">
-        <h3>Discovery Notes</h3>
-        <div class="body" style="color:var(--muted);font-size:0.78rem">${esc(r.notes)}</div>
-      </div>
-    ` : ''}
-  `;
-
-  document.getElementById('detail-drawer').classList.add('open');
-}
-
-function closeDrawer() {
-  document.getElementById('detail-drawer').classList.remove('open');
-}
-
-// Close drawer on Escape
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
-
-// ── Header stats ───────────────────────────────────────────────────────────
-function updateHeaderStats(clearances, lab, leads, total, lastScan) {
-  document.getElementById('stat-clearances').textContent = clearances;
-  document.getElementById('stat-lab').textContent        = lab;
-  document.getElementById('stat-contacts').textContent   = leads;
-  document.getElementById('stat-total').textContent      = total;
-  document.getElementById('stat-scan').textContent       = lastScan
-    ? new Date(lastScan).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
-    : 'Never';
-}
-
-// ── Render all panes ───────────────────────────────────────────────────────
-function renderAll() {
-  const { clearances, lab } = partitionRoles(allRoles);
-  renderPane1(clearances);
-  renderPane2(lab);
-  renderPane3(allLeads);
-  updateHeaderStats(clearances.length, lab.length, allLeads.length, allRoles.length, null);
-}
-</script>
-
-<script>
-// ── Reactive filter wiring ─────────────────────────────────────────────────
-const filterIds = ['search-input','filter-channel','filter-sector','filter-score','filter-time','filter-exp','filter-metro'];
-filterIds.forEach(id => {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', renderAll);
-});
-
-// Pane-local controls
-document.getElementById('p1-sort').addEventListener('change', () => {
-  const { clearances } = partitionRoles(allRoles);
-  renderPane1(clearances);
-});
-document.getElementById('p2-sort').addEventListener('change', () => {
-  const { lab } = partitionRoles(allRoles);
-  renderPane2(lab);
-});
-document.getElementById('p2-show-bridges').addEventListener('change', () => {
-  const { lab } = partitionRoles(allRoles);
-  renderPane2(lab);
-});
-document.getElementById('p3-search').addEventListener('input', () => renderPane3(allLeads));
-document.getElementById('p3-archetype').addEventListener('change', () => renderPane3(allLeads));
-
-// Expand all (Pane 1)
-document.getElementById('p1-expand-all').addEventListener('click', () => {
-  document.querySelectorAll('#pane1-body .opp-card-snippet').forEach(el => {
-    el.style.webkitLineClamp = 'unset';
-    el.style.overflow = 'visible';
-  });
-});
-
-// ── Load data ──────────────────────────────────────────────────────────────
-async function loadProfile() {
-  try {
-    const res = await api('/profile');
-    const profile = await res.json();
-    const sel = document.getElementById('filter-sector');
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">All sectors</option>';
-    (profile.target_arbitrage_sectors || []).forEach(s => {
-      sel.innerHTML += `<option value="${s.toLowerCase()}">${esc(s)}</option>`;
+    async function checkSession() {
+        const res = await fetch('/auth/me');
+        if (res.ok) { document.getElementById('login-overlay').classList.add('hidden'); loadData(); }
+    }
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        if (res.ok) location.reload();
     });
-    sel.value = cur;
-  } catch (e) { console.warn('Profile load failed', e); }
-}
-
-async function loadAll() {
-  // Show skeletons while loading
-  ['pane1-body','pane2-body','pane3-body'].forEach(id => {
-    document.getElementById(id).innerHTML =
-      `<div class="skeleton-card"><div class="skeleton" style="width:60%"></div><div class="skeleton" style="width:40%"></div></div>
-       <div class="skeleton-card"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:35%"></div></div>`;
-  });
-  try {
-    const [rolesRes, leadsRes, summaryRes] = await Promise.all([
-      api('/opportunities'),
-      api('/leads'),
-      api('/scan/summary'),
-    ]);
-    allRoles = await rolesRes.json();
-    allLeads = await leadsRes.json();
-    const summary = await summaryRes.json();
-
-    await loadProfile();
-
-    const { clearances, lab } = partitionRoles(allRoles);
-    renderPane1(clearances);
-    renderPane2(lab);
-    renderPane3(allLeads);
-    updateHeaderStats(
-      clearances.length, lab.length, allLeads.length, allRoles.length,
-      summary?.lastScanAt
-    );
-  } catch (e) {
-    if (e.message !== 'Unauthorized') {
-      console.error('loadAll failed', e);
-      ['pane1-body','pane2-body','pane3-body'].forEach(id => {
-        document.getElementById(id).innerHTML =
-          `<div class="empty-state"><div class="icon">⚠</div><p>Failed to load data.<br><button class="ghost" onclick="loadAll()" style="margin-top:0.5rem">Retry</button></p></div>`;
-      });
+    document.getElementById('btn-logout').addEventListener('click', () => {
+        fetch('/auth/logout', { method: 'POST' }).then(() => location.reload());
+    });
+    async function loadData() {
+        const res = await api('/opportunities');
+        allData = await res.json();
+        const profileRes = await fetch('/profile');
+        const profile = await profileRes.json();
+        if (profile.operational_boundaries?.geographic_grid) {
+            const grid = profile.operational_boundaries.geographic_grid;
+            const metros = Object.values(grid).flat();
+            const select = document.getElementById('filter-metro');
+            metros.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m.toUpperCase();
+                select.appendChild(opt);
+            });
+        }
+        renderPanes();
     }
-  }
-}
+    document.getElementById('global-search').addEventListener('input', renderPanes);
+    document.getElementById('filter-posted').addEventListener('change', renderPanes);
+    document.getElementById('filter-metro').addEventListener('change', renderPanes);
 
-// ── Scan controls ──────────────────────────────────────────────────────────
-document.getElementById('btn-scan').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-scan');
-  btn.disabled = true; btn.textContent = '▶ Starting…';
-  try {
-    await api('/scan/run', { method: 'POST' });
-    startScanPoll();
-  } catch (e) {
-    toast(e.message);
-    btn.disabled = false; btn.textContent = '▶ Run Scan';
-  }
-});
+    function renderPanes() {
+        const query = document.getElementById('global-search').value.toLowerCase();
+        const timeLimit = document.getElementById('filter-posted').value;
+        const metroLimit = document.getElementById('filter-metro').value;
+        const clearFeed = document.getElementById('feed-clearances');
+        const bridgeFeed = document.getElementById('feed-bridge');
+        const outreachFeed = document.getElementById('feed-outreach');
+        clearFeed.innerHTML = ''; bridgeFeed.innerHTML = ''; outreachFeed.innerHTML = '';
 
-document.getElementById('btn-refresh').addEventListener('click', loadAll);
+        const filtered = allData.filter(r => {
+            const text = `${r.role_title} ${r.company_name} ${r.target_sector} ${r.metro_hub} ${r.location}`.toLowerCase();
+            if (query && !text.includes(query)) return false;
+            if (metroLimit && !text.includes(metroLimit.toLowerCase())) return false;
+            if (timeLimit) {
+                const days = Number(timeLimit);
+                const date = new Date(r.posted_at || r.created_at);
+                if (Date.now() - date.getTime() > days * 24 * 60 * 60 * 1000) return false;
+            }
+            return true;
+        });
 
-function startScanPoll() {
-  if (scanPoll) clearInterval(scanPoll);
-  scanPoll = setInterval(pollScanStatus, 4000);
-  pollScanStatus();
-}
+        const direct = filtered.filter(r => r.relevance_score >= 0.85 || (r.coverage_score >= 0.67 && r.relevance_score >= 0.7));
+        const bridge = filtered.filter(r => (r.relevance_score >= 0.5 && r.relevance_score < 0.85) && !direct.includes(r));
+        const outreach = filtered.filter(r => r.status === 'Reviewed' || r.tailored_pitch);
 
-async function pollScanStatus() {
-  try {
-    const res = await api('/scan/status');
-    const s = await res.json();
-    const banner = document.getElementById('scan-banner');
-    const btn    = document.getElementById('btn-scan');
-    const details = document.getElementById('scan-details');
+        document.getElementById('count-clear').textContent = direct.length;
+        document.getElementById('count-bridge').textContent = bridge.length;
+        document.getElementById('count-outreach').textContent = outreach.length;
 
-    if (s.scanInProgress) {
-      banner.classList.add('show');
-      btn.disabled = true; btn.textContent = '▶ Scanning…';
-      if (s.lastLog) {
-        details.textContent = `[${s.lastLog.source_name}] ${s.lastLog.status} · ${s.lastLog.findings_count ?? 0} found`;
-      }
-    } else {
-      banner.classList.remove('show');
-      btn.disabled = false; btn.textContent = '▶ Run Scan';
-      if (scanPoll) { clearInterval(scanPoll); scanPoll = null; }
-      await loadAll();
+        document.getElementById('stat-clearances').textContent = direct.filter(r => r.relevance_score >= 0.85).length;
+        document.getElementById('stat-coverage').textContent = filtered.filter(r => r.coverage_score >= 0.67).length;
+
+        direct.forEach(r => {
+            const coverageBadge = r.coverage_score != null ? `<span class="tag" style="background:var(--cyan-dim); color:var(--cyan); border: 1px solid var(--cyan); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem;">⬡ node ${Math.round(r.coverage_score * 100)}%</span>` : '';
+            clearFeed.innerHTML += `<div class="card" onclick="applyForRole(${r.id})" style="cursor:pointer"><h4>${r.role_title}</h4><div class="meta"><span>${r.company_name}</span><span class="score-tag">SCORE: ${r.relevance_score}</span>${coverageBadge}</div></div>`;
+        });
+        bridge.forEach(r => {
+            const coverageBadge = r.coverage_score != null ? `<span class="tag" style="background:var(--cyan-dim); color:var(--cyan); border: 1px solid var(--cyan); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem;">⬡ node ${Math.round(r.coverage_score * 100)}%</span>` : '';
+            bridgeFeed.innerHTML += `<div class="card"><h4>${r.role_title}</h4><div class="meta"><span>${r.company_name}</span>${coverageBadge}</div><div class="bridge-item"><div class="bridge-label">Bridge Gap</div><div style="font-size:0.75rem">${r.description?.slice(0, 100)}...</div></div></div>`;
+        });
+        outreach.forEach(r => {
+            outreachFeed.innerHTML += `<div class="card"><h4>${r.role_title}</h4><div class="meta"><span>${r.company_name}</span></div><div class="outreach-box">${r.tailored_pitch || 'Drafting...'}</div></div>`;
+        });
     }
-  } catch { /* ignore poll errors */ }
-}
 
-// ── Boot ───────────────────────────────────────────────────────────────────
-(async () => {
-  const ok = await checkSession();
-  if (ok) {
-    await loadAll();
-    // Check if a scan is already running on page load
-    pollScanStatus();
-  }
-})();
-</script>
+    async function applyForRole(id) {
+        await api(`/api/opportunities/${id}/tailor-resume`, { method: 'POST', body: JSON.stringify({}) });
+        setTimeout(() => loadData(), 1500);
+    }
+
+    function exportInventory() { window.location.href = '/export/inventory'; }
+    checkSession();
+  </script>
 </body>
 </html>
