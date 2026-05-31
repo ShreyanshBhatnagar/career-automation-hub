@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
 import fs from 'fs';
-import { execSync } from 'child_process';
 import { openDb, all, run, get } from '../database/db.js';
 import { runDeepScan } from '../agents/orchestrator.js';
 import { scanSemiconductors } from '../agents/scanners/track_semiconductors.js';
@@ -24,6 +23,20 @@ import {
 } from './middleware/validate.js';
 import { requireUser, requireUserOrApiKey, requireInternalApiKey } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
+import logger from './utils/logger.js';
+
+// ── Profile cache — read once at startup, never on every request ──────────
+let _profileCache = null;
+function getProfile() {
+  if (_profileCache) return _profileCache;
+  const profilePath = path.resolve('./docs/brother_profile.json');
+  try {
+    _profileCache = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+  } catch (e) {
+    throw new Error(`Failed to load brother_profile.json: ${e.message}`);
+  }
+  return _profileCache;
+}
 
 assertProductionSecrets();
 
@@ -58,9 +71,20 @@ app.use(bodyParser.json({ limit: '50kb' }));
 app.use(rejectOversizedBody);
 app.use(validateBody);
 
-try {
-  execSync('node database/migrate.js', { stdio: 'pipe', cwd: path.resolve('.') });
-} catch (_) {}
+// ── Schema init + migrations — must complete before accepting any traffic ──
+async function runMigrations() {
+  const { initSchema } = await import('../database/init.js');
+  const { migrate }    = await import('../database/migrate.js');
+  await initSchema();   // CREATE TABLE IF NOT EXISTS — safe on every boot
+  await migrate();      // ALTER TABLE additions — idempotent on re-runs
+}
+await runMigrations().catch((e) => {
+  logger.error('API_SERVER', 'Migration failed — aborting startup', {
+    stack_trace:    e.stack,
+    beyond_remarks: 'process.exit(1) triggered — fix schema before restarting',
+  });
+  process.exit(1);
+});
 
 app.use('/auth', authRoutes);
 
@@ -71,15 +95,15 @@ app.get('/health', (req, res) => {
 app.use(express.static(path.resolve('./public')));
 
 app.get('/profile', requireUser, (req, res) => {
-  const profilePath = path.resolve('./config/profile_vault.json');
   try {
-    if (!fs.existsSync(profilePath)) {
-        return res.json({});
+    const profilePath = path.resolve('./config/profile_vault.json');
+    if (fs.existsSync(profilePath)) {
+        res.json(JSON.parse(fs.readFileSync(profilePath, 'utf8')));
+    } else {
+        res.json(getProfile());
     }
-    const profile = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
-    res.json(profile);
   } catch (e) {
-    res.status(500).json({ error: 'Failed to load profile' });
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -95,6 +119,8 @@ app.post('/profile', requireUser, (req, res) => {
 
 app.get('/opportunities', requireUser, validateOpportunityQuery, withDb(async (db, req, res, done) => {
   const { channel, offbeat, min_score } = req.query;
+  const limit = Math.min(Number(req.query.limit) || 200, 500);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
   let sql = `SELECT * FROM opportunities WHERE 1=1`;
   const params = [];
   if (channel) {
@@ -106,7 +132,8 @@ app.get('/opportunities', requireUser, validateOpportunityQuery, withDb(async (d
     sql += ` AND relevance_score >= ?`;
     params.push(Number(min_score));
   }
-  sql += ` ORDER BY relevance_score DESC, last_scanned_at DESC, created_at DESC LIMIT 500`;
+  sql += ` ORDER BY relevance_score DESC, last_scanned_at DESC, created_at DESC LIMIT ? OFFSET ?`;
+  params.push(limit, offset);
   done(null, await all(db, sql, params));
 }));
 
@@ -141,6 +168,39 @@ app.post('/api/opportunities/:id/tailor-resume', requireUser, withDb(async (db, 
   await run(db, `UPDATE opportunities SET status = 'Reviewed' WHERE id = ?`, [id]);
   await run(db, `PRAGMA wal_checkpoint(PASSIVE)`);
   done(null, { id, markdown, status: 'Success' });
+}));
+
+/**
+ * POST /api/opportunities/:id/release
+ * HITL gate: marks an opportunity as 'Applied' and records the release timestamp.
+ * This is the "Release Application Block" action from Pane 1.
+ */
+app.post('/api/opportunities/:id/release', requireUser, withDb(async (db, req, res, done) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || isNaN(id)) return done(new Error('Invalid opportunity id'), null, 400);
+  const opp = await get(db, `SELECT id, status FROM opportunities WHERE id = ?`, [id]);
+  if (!opp) return done(new Error('Opportunity not found'), null, 404);
+  await run(db, `UPDATE opportunities SET status = 'Applied', next_action = 'Follow up in 5 days' WHERE id = ?`, [id]);
+  await run(db, `PRAGMA wal_checkpoint(PASSIVE)`);
+  done(null, { id, status: 'Applied', message: 'Application block released. Status → Applied.' });
+}));
+
+/**
+ * POST /api/opportunities/:id/authorize-bridge
+ * HITL gate: saves an edited bridge card context note back to the opportunity notes field.
+ * Body: { bridge_context: string }
+ */
+app.post('/api/opportunities/:id/authorize-bridge', requireUser, withDb(async (db, req, res, done) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || isNaN(id)) return done(new Error('Invalid opportunity id'), null, 400);
+  const { bridge_context } = req.body || {};
+  if (typeof bridge_context !== 'string' || bridge_context.length > 2000) {
+    return done(new Error('bridge_context must be a string under 2000 chars'), null, 400);
+  }
+  const opp = await get(db, `SELECT id FROM opportunities WHERE id = ?`, [id]);
+  if (!opp) return done(new Error('Opportunity not found'), null, 404);
+  await run(db, `UPDATE opportunities SET notes = ?, status = 'Reviewed' WHERE id = ?`, [bridge_context.trim(), id]);
+  done(null, { id, message: 'Bridge context authorized and saved.' });
 }));
 
 app.post('/api/opportunities/:id/draft-outreach', requireUser, withDb(async (db, req, res, done) => {
@@ -282,6 +342,10 @@ app.post('/scan/run', strictWriteLimiter, requireUser, async (req, res) => {
     .catch((e) => {
       lastScanResult = { error: e.message, finishedAt: new Date().toISOString() };
       scanInProgress = false;
+      logger.error('API_SERVER', 'Deep scan failed', {
+        stack_trace:    e.stack,
+        beyond_remarks: 'scanInProgress reset to false; last result recorded with error field',
+      });
     });
 });
 
@@ -331,6 +395,29 @@ app.get('/scan/status', requireUser, withDb(async (db, req, res, done) => {
 }));
 
 app.listen(PORT, () => {
-  console.log(`🚀 Career Hub API running at http://localhost:${PORT}`);
-  console.log(`🔐 Auth: POST /auth/login (rate limited: ${env.LOGIN_RATE_LIMIT_MAX}/15min)`);
+  logger.info('API_SERVER', 'Server started', {
+    beyond_remarks: `http://localhost:${PORT} | login rate limit: ${env.LOGIN_RATE_LIMIT_MAX}/15min`,
+  });
+});
+
+// ── 404 handler — must be after all routes ────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found.' });
+});
+
+// ── Global error handler — catches unhandled throws in middleware/routes ──
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  const status = err.status || err.statusCode || 500;
+  const message = env.NODE_ENV === 'production'
+    ? 'Internal server error.'
+    : (err.message || 'Internal server error.');
+
+  logger.error('API_SERVER', err.message || 'Unhandled server error', {
+    source_target:  `${req.method} ${req.path}`,
+    stack_trace:    err.stack,
+    beyond_remarks: `HTTP ${status} returned to client | NODE_ENV=${env.NODE_ENV}`,
+  });
+
+  res.status(status).json({ error: message });
 });

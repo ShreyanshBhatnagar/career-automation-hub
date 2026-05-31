@@ -1,9 +1,17 @@
 import fs from 'fs';
 import path from 'path';
 
+// ── Profile loaded once at module initialisation — not on every call ──────
+const _profilePath = path.resolve('./docs/brother_profile.json');
+let _profile;
+try {
+  _profile = JSON.parse(fs.readFileSync(_profilePath, 'utf-8'));
+} catch (e) {
+  throw new Error(`[relevance] Failed to load brother_profile.json: ${e.message}`);
+}
+
 function getProfile() {
-  const profilePath = path.resolve('./docs/brother_profile.json');
-  return JSON.parse(fs.readFileSync(profilePath, 'utf-8'));
+  return _profile;
 }
 
 /**

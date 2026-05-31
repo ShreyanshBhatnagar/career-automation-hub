@@ -1,27 +1,34 @@
 import pkg from 'bullmq';
 const { Worker } = pkg;
-import { redisConnection } from './lib/queue.js';
+import { redisConnection, evaluationQueue } from './lib/queue.js';
 import { openDb, run, get } from '../database/db.js';
 import { scanUrlList } from './scanners/web_scanner.js';
-import JobAgentOrchestrator from './job_agent_orchestrator.js';
-import ProxyManager from './lib/proxy_manager.js';
 import SessionVault from './lib/session_vault.js';
+import logger from '../api/utils/logger.js';
 
+/**
+ * Ingestion Worker
+ *
+ * Consumes `job-ingestion-queue` jobs dispatched by the orchestrator.
+ * Responsibility: raw scraping only — writes rows with status='Raw Ingested'
+ * and score=NULL, then enqueues them for async agent evaluation.
+ */
 const worker = new Worker('job-ingestion-queue', async (job) => {
   const { sessionId, item, opts } = job.data;
-  console.log(`[Worker] Processing Job ${job.id}: ${item.name || item.url}`);
+  console.log(`[Worker] Job ${job.id}: ${item.name || item.url}`);
 
   const db = openDb();
   const ctx = {
     db,
     run,
     sessionId,
-    log: (msg) => console.log(`[Worker][${sessionId.slice(0, 8)}] ${msg}`),
+    log: (msg) => console.log(`[Worker][${sessionId?.slice(0, 8)}] ${msg}`),
     sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
     async logScan(entry) {
       await run(
         db,
-        `INSERT INTO scan_logs (source_name, source_channel, url_scanned, status, findings_count, details, duration_ms, session_id)
+        `INSERT INTO scan_logs
+           (source_name, source_channel, url_scanned, status, findings_count, details, duration_ms, session_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           entry.source_name,
@@ -35,63 +42,87 @@ const worker = new Worker('job-ingestion-queue', async (job) => {
         ]
       );
     },
+    /**
+     * After a row is persisted, enqueue it for agent evaluation.
+     * This is the bridge between the ingestion and evaluation pipelines.
+     */
+    async enqueueForEvaluation(opportunityId) {
+      await evaluationQueue.add('evaluate-opportunity', {
+        id: opportunityId,
+        sessionId,
+      });
+    },
   };
 
   try {
-    // 1. Handle session rotation for authenticated platforms
+    // Rotate session token for authenticated platforms
     if (opts.channel === 'linkedin' || opts.channel === 'indeed') {
-        const sessionToken = SessionVault.getNextSession(opts.channel);
-        if (sessionToken) {
-            opts.session_token = sessionToken;
-        }
+      const sessionToken = SessionVault.getNextSession(opts.channel);
+      if (sessionToken) opts.session_token = sessionToken;
     }
 
-    // 2. Scrape the source
+    // Dispatch to the correct scanner
     let foundCount = 0;
     if (opts.channel === 'duckduckgo') {
-        const { scanDuckDuckGo } = await import('./scanners/duckduckgo_scanner.js');
-        foundCount = await scanDuckDuckGo(ctx, [item.url]);
+      const { scanDuckDuckGo } = await import('./scanners/duckduckgo_scanner.js');
+      foundCount = await scanDuckDuckGo(ctx, [item.url]);
     } else if (opts.channel === 'remoteok') {
-        const { scanRemoteOK } = await import('./scanners/platform_scanner.js');
-        foundCount = await scanRemoteOK(ctx);
+      const { scanRemoteOK } = await import('./scanners/platform_scanner.js');
+      foundCount = await scanRemoteOK(ctx);
     } else {
-        foundCount = await scanUrlList(ctx, [item], opts);
+      foundCount = await scanUrlList(ctx, [item], opts);
     }
 
-    // RETRY LOGIC: If a high-stealth fetch failed due to rate limits or blocks
-    // we throw a specific error to trigger BullMQ's automatic retry backoff.
-    const lastScan = await get(db, `SELECT status, details FROM scan_logs WHERE session_id = ? ORDER BY scanned_at DESC LIMIT 1`, [sessionId]);
-    if (lastScan && (/429|blocked|timeout|fail/i.test(lastScan.details) || lastScan.status.includes('Failed'))) {
-        if (opts.fetch_type === 'proxy' || opts.fetch_type === 'stealth') {
-            throw new Error(`RETRY_REQUIRED: Ingestion blocked for ${item.url}. Backing off...`);
-        }
+    // Retry trigger: check the last scan log for this session for hard failure signals.
+    // We check the status field (not the details text) to avoid false positives.
+    const lastScan = await get(
+      db,
+      `SELECT status FROM scan_logs WHERE session_id = ? ORDER BY scanned_at DESC LIMIT 1`,
+      [sessionId]
+    );
+    if (lastScan && /^Failed$/i.test(lastScan.status)) {
+      if (opts.fetch_type === 'proxy' || opts.fetch_type === 'stealth') {
+        const retryErr = new Error(`RETRY_REQUIRED: Ingestion blocked for ${item.url}. Backing off…`);
+        logger.warn('INGESTION_WORKER', 'Scan blocked — triggering BullMQ retry backoff', {
+          source_target:  item.url,
+          beyond_remarks: `channel=${opts.channel} fetch_type=${opts.fetch_type} | job will be retried with exponential backoff`,
+        });
+        throw retryErr;
+      }
     }
 
-    // Evaluation is now handled asynchronously via evaluationQueue triggered in scanner/persist
-
-    console.log(`[Worker] Job ${job.id} complete. Findings: ${foundCount}`);
+    logger.info('INGESTION_WORKER', `Job ${job.id} complete`, {
+      source_target:  item.url,
+      beyond_remarks: `findings=${foundCount} channel=${opts.channel}`,
+    });
   } catch (e) {
-    console.error(`[Worker] Job ${job.id} failed:`, e.message);
-    throw e;
+    logger.error('INGESTION_WORKER', `Job ${job.id} failed: ${e.message}`, {
+      source_target:  item.url || item.name,
+      stack_trace:    e.stack,
+      beyond_remarks: `sessionId=${sessionId?.slice(0, 8)} channel=${opts?.channel} attempt=${job.attemptsMade}`,
+    });
+    throw e; // Re-throw so BullMQ applies retry/backoff
   } finally {
     db.close();
   }
 }, {
   connection: redisConnection,
-  concurrency: 5, // Handle 5 parallel searches per worker instance
+  concurrency: 5,
 });
 
 worker.on('completed', (job) => {
-  console.log(`[Worker] Job ${job.id} has completed!`);
+  logger.info('INGESTION_WORKER', `Job ${job.id} completed`);
 });
 
 worker.on('failed', (job, err) => {
-  console.log(`[Worker] Job ${job.id} has failed with ${err.message}`);
-  // DLQ Logic: If 3 consecutive failures, job is effectively dead-lettered
-  // Cooling-off can be implemented by checking job.attemptsMade
-  if (job.attemptsMade >= 3) {
-      console.error(`[DLQ] Cooling-off triggered for Job ${job.id} - Keyword/Target blocked.`);
-  }
+  const isDlq = job?.attemptsMade >= 3;
+  logger.error('INGESTION_WORKER', `Job ${job?.id} failed${isDlq ? ' — dead-lettered' : ''}`, {
+    source_target:  job?.data?.item?.url || job?.data?.item?.name,
+    stack_trace:    err.stack,
+    beyond_remarks: `attempt=${job?.attemptsMade}${isDlq ? ' | DLQ: target may be permanently blocked — manual review required' : ' | BullMQ will retry'}`,
+  });
 });
 
-console.log('🚀 Ingestion Worker started and listening for jobs...');
+logger.info('INGESTION_WORKER', 'Ingestion Worker started', {
+  beyond_remarks: 'listening on job-ingestion-queue | concurrency=5',
+});
