@@ -14,6 +14,7 @@ const MIGRATIONS = [
   `ALTER TABLE opportunities ADD COLUMN description TEXT`,
   `ALTER TABLE opportunities ADD COLUMN requirements TEXT`,
   `ALTER TABLE opportunities ADD COLUMN tailored_pitch TEXT`,
+  `ALTER TABLE opportunities ADD COLUMN coverage_score REAL`,
 ];
 
 async function migrate() {

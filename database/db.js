@@ -4,7 +4,9 @@ import path from 'path';
 const DB_PATH = path.resolve('./database/career_engine.db');
 
 export function openDb() {
-  return new sqlite3.Database(DB_PATH);
+  const db = new sqlite3.Database(DB_PATH);
+  db.run('PRAGMA journal_mode = WAL');
+  return db;
 }
 
 export function run(db, sql, params = []) {

@@ -139,6 +139,7 @@ app.post('/api/opportunities/:id/tailor-resume', requireUser, withDb(async (db, 
   const markdown = await tailor.generateMarkdownBlock(opp.description || opp.role_title, profilePath, req.body);
 
   await run(db, `UPDATE opportunities SET status = 'Reviewed' WHERE id = ?`, [id]);
+  await run(db, `PRAGMA wal_checkpoint(PASSIVE)`);
   done(null, { id, markdown, status: 'Success' });
 }));
 

@@ -34,6 +34,13 @@ export async function upsertOpportunity(db, run, row) {
     row.scan_session_id,
   ]);
 
+  // Ensure posted_at is populated
+  if (!row.posted_at) {
+      await run(db, `UPDATE opportunities SET posted_at = datetime('now') WHERE id = ? AND posted_at IS NULL`, [result.lastID]);
+  } else {
+      await run(db, `UPDATE opportunities SET posted_at = ? WHERE id = ?`, [row.posted_at, result.lastID]);
+  }
+
   // Strategic Phase 1: Ensure track-specific metadata is appended to raw payload
   if (row.raw_job_payload) {
     await run(db, `UPDATE opportunities SET target_sector = ?, metro_hub = ?, raw_job_payload = ? WHERE id = ?`,

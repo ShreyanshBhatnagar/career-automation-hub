@@ -32,14 +32,16 @@ const agentWorker = new Worker('agent-evaluation-queue', async (job) => {
 
     // 4. Update Database with Score, Notes, and Tailored Pitch
     const reasons = scoring.match_reasons.join(', ');
+    const coverage = agentResult.agent_a?.coverage_score ?? null;
     await run(db, `
         UPDATE opportunities
         SET relevance_score = ?,
             notes = ?,
             status = 'Analyzed',
-            tailored_pitch = ?
+            tailored_pitch = ?,
+            coverage_score = ?
         WHERE id = ?
-    `, [scoring.relevance_score, reasons, agentResult.tailored_pitch, id]);
+    `, [scoring.relevance_score, reasons, agentResult.tailored_pitch, coverage, id]);
 
     console.log(`[AgentWorker] Opportunity #${id} analysis complete. Score: ${scoring.relevance_score}`);
   } catch (e) {

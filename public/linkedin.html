@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opportunity Map — LinkedIn Portal</title>
+  <style>
+    :root {
+      --bg: #0a0e14; --surface: #141b26; --surface2: #1c2636;
+      --border: #2a3a52; --text: #e8edf4; --muted: #7d92ad;
+      --accent: #0077b5; --green: #34d399; --amber: #fbbf24; --red: #f87171; --industrial: #52637a;
+      --cyan: #22d3ee; --cyan-dim: rgba(34, 211, 238, 0.1);
+      --sidebar-w: 240px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "SF Mono", "Fira Code", monospace; background: var(--bg); color: var(--text); line-height: 1.4; font-size: 0.85rem; display: flex; height: 100vh; overflow: hidden; }
+
+    .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 2px solid var(--industrial); display: flex; flex-direction: column; padding: 1.5rem; }
+    .sidebar h1 { font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 2.5rem; }
+    .sidebar h1 span { color: var(--accent); }
+    .nav-item { color: var(--muted); text-decoration: none; padding: 0.8rem 1rem; border-radius: 4px; margin-bottom: 0.5rem; transition: all 0.2s; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .nav-item:hover, .nav-item.active { background: var(--surface2); color: var(--accent); }
+    .nav-item.active { border-left: 3px solid var(--accent); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    header { border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; background: var(--surface); }
+    .hstat { display: flex; flex-direction: column; align-items: center; }
+    .hstat .lbl { color: var(--muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .hstat .val { font-size: 1rem; font-weight: bold; }
+    .val.green { color: var(--green); }
+
+    .matrix-viewport { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .pane { background: var(--bg); padding: 1.5rem; overflow-y: auto; flex: 1; }
+    .pane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--industrial); }
+    .pane-header h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--accent); letter-spacing: 1px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); padding: 1rem; margin-bottom: 1rem; }
+    .card h4 { color: var(--text); margin-bottom: 0.4rem; font-size: 0.9rem; }
+    .card .meta { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.8rem; display: flex; gap: 0.8rem; }
+    .score-tag { color: var(--green); font-weight: bold; }
+
+    #login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    #login-overlay.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="login-overlay">
+    <div style="background: var(--surface); border: 1px solid var(--industrial); padding: 2rem; width: 320px;">
+      <h2 style="margin-bottom:1.5rem; font-size:0.9rem; text-transform:uppercase">Auth Gateway</h2>
+      <form id="login-form">
+        <input id="username" placeholder="OPERATOR_ID" style="width:100%; padding:0.6rem; margin-bottom:1rem; background:var(--bg); border:1px solid var(--border); color:var(--text);" required />
+        <input id="password" type="password" placeholder="ACCESS_KEY" style="width:100%; padding:0.6rem; margin-bottom:1rem; background:var(--bg); border:1px solid var(--border); color:var(--text);" required />
+        <button type="submit" style="width:100%; padding:0.6rem; background:var(--accent); color:var(--bg); border:none; font-weight:bold; cursor:pointer;">INITIALIZE</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="sidebar">
+      <h1>STRAT <span>OPS</span></h1>
+      <a href="/" class="nav-item">Central Matrix</a>
+      <a href="/linkedin.html" class="nav-item active">LinkedIn Portal</a>
+      <a href="/scanners.html" class="nav-item">Ingestion Control</a>
+      <a href="/profile.html" class="nav-item">Config Vault</a>
+      <div style="margin-top: auto;">
+          <button id="btn-logout" style="width:100%; background:none; border: 1px solid var(--industrial); color: var(--muted); padding: 0.5rem; font-size: 0.65rem; cursor:pointer">TERMINATE SESSION</button>
+      </div>
+  </div>
+
+  <div class="main-content">
+    <header>
+      <div style="font-size:0.8rem; color:var(--muted)">[LINKEDIN_SIGNAL_ISOLATION]</div>
+      <div style="display:flex; gap: 1.5rem; align-items: center;">
+          <div class="hstat">
+            <span class="lbl">LinkedIn Leads</span>
+            <span class="val" id="stat-li-count">0</span>
+          </div>
+      </div>
+    </header>
+
+    <div class="matrix-viewport">
+        <div class="pane">
+            <div class="pane-header"><h3>LinkedIn Feed</h3></div>
+            <div id="feed-linkedin"></div>
+        </div>
+    </div>
+  </div>
+
+  <script>
+    let allData = [];
+    async function api(path, options = {}) {
+      const res = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+      if (res.status === 401) { location.reload(); }
+      return res;
+    }
+    async function checkSession() {
+        const res = await fetch('/auth/me');
+        if (res.ok) { document.getElementById('login-overlay').classList.add('hidden'); loadData(); }
+    }
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        if (res.ok) location.reload();
+    });
+    document.getElementById('btn-logout').addEventListener('click', () => {
+        fetch('/auth/logout', { method: 'POST' }).then(() => location.reload());
+    });
+    async function loadData() {
+        const res = await api('/opportunities?channel=linkedin');
+        allData = await res.json();
+        renderFeed();
+    }
+    function renderFeed() {
+        const feed = document.getElementById('feed-linkedin');
+        feed.innerHTML = '';
+        document.getElementById('stat-li-count').textContent = allData.length;
+        allData.forEach(r => {
+            feed.innerHTML += `
+                <div class="card">
+                    <h4>${r.role_title}</h4>
+                    <div class="meta">
+                        <span>${r.company_name}</span>
+                        <span class="score-tag">SCORE: ${r.relevance_score}</span>
+                        <a href="${r.source_url}" target="_blank" style="color:var(--accent); text-decoration:none">View on LinkedIn ↗</a>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--muted)">${r.location || 'Location Not Specified'}</div>
+                </div>`;
+        });
+    }
+    checkSession();
+  </script>
+</body>
+</html>

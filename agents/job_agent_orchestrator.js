@@ -11,6 +11,15 @@ import ResumeTailorAgent from './resume_tailor_agent.js';
 import fs from 'fs';
 import path from 'path';
 
+const SKILL_SYNONYMS = {
+  "contractor management": ["vendor management", "subcontractor oversight", "labor coordination", "workforce management"],
+  "site reconciliation": ["material accounting", "field audit", "site verification", "operational reconciliation"],
+  "sap/erp": ["enterprise resource planning", "operational control systems", "service order management", "industrial software"],
+  "foundry": ["fab", "semiconductor plant", "cleanroom facility", "silicon manufacturing"],
+  "data center": ["server farm", "mission critical infrastructure", "hyperscale", "colocation facility"],
+  "high-voltage": ["hv", "power distribution", "substation", "electrical infrastructure"]
+};
+
 class JobAgentOrchestrator {
   constructor(config = {}) {
     this.agents = {
@@ -45,24 +54,34 @@ class JobAgentOrchestrator {
         );
     }
 
+    const totalLeverageNodes = profile.leverage_points.length;
+    const coverageScore = totalLeverageNodes > 0 ? (mapping.length / totalLeverageNodes) : 0;
+
     return {
       id: oppId,
       role: opp.role_title,
       structural_overlap: mapping,
       red_team_critiques: critiques,
       tailored_pitch: result.pitch,
+      agent_a: {
+        coverage_score: coverageScore
+      },
       status: "Arbitrage Opportunity Verified"
     };
   }
 
   mapStructuralOverlap(opp) {
     const profile = JSON.parse(fs.readFileSync(this.profilePath, 'utf-8'));
-    const text = (opp.role_title + ' ' + opp.description).toLowerCase();
+    const text = (opp.role_title + ' ' + (opp.description || '')).toLowerCase();
 
-    // Map atomic nodes to the job description
+    // Semantic Expansion: Create an expanded corpus of skills and their synonyms
     return profile.leverage_points.filter(point => {
-      return point.atomic_skills.some(skill => text.includes(skill.toLowerCase())) ||
-             point.transferable_leverage.some(sector => text.includes(sector.toLowerCase()));
+      const expandedCorpus = [...point.atomic_skills, ...point.transferable_leverage].flatMap(skill => {
+          const s = skill.toLowerCase();
+          return [s, ...(SKILL_SYNONYMS[s] || [])];
+      });
+
+      return expandedCorpus.some(term => text.includes(term));
     });
   }
 
