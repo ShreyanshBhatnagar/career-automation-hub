@@ -19,7 +19,7 @@
     "geographic_grid": {
       "North-West": ["Delhi NCR", "Ahmedabad", "Jaipur", "Gurgaon", "Noida"],
       "Mid": ["Mumbai", "Pune", "Indore", "Nagpur", "Surat", "Vadodara"],
-      "South": ["Bangalore", "Hyderabad", "Chennai", "Coimbatore", "Visakhapatnam"]
+      "South": ["Bangalore", "Hyderabad", "Chennai", "Kolkata", "Coimbatore", "Visakhapatnam"]
     },
     "excluded_regions": ["Northeast India", "Ladakh", "Kashmir", "Himachal", "Uttarakhand"]
   }

@@ -234,7 +234,7 @@
         document.getElementById('resume-text').value = currentProfile.resume_text || '';
 
         if (currentProfile.operational_boundaries?.geographic_grid) {
-            const grid = profile.operational_boundaries.geographic_grid;
+            const grid = currentProfile.operational_boundaries.geographic_grid;
             const metros = Object.values(grid).flat();
             const select = document.getElementById('filter-metro');
             metros.forEach(m => {
@@ -305,7 +305,7 @@
             bridgeFeed.innerHTML += `<div class="card">
                 <h4>${r.role_title}${verdictBadge}</h4>
                 <div class="meta"><span>${r.company_name}</span>${coverageBadge}</div>
-                <div class="bridge-item"><div class="bridge-label">Bridge Gap</div><div style="font-size:0.75rem">${r.description?.slice(0, 100)}...</div></div>
+                <div class="bridge-item"><div class="bridge-label">Bridge Gap</div><div style="font-size:0.75rem">${r.description ? r.description.slice(0, 100) + '...' : 'No description available for analysis.'}</div></div>
                 <div class="feedback-row">
                     <button class="btn-fb" onclick="sendFeedback(${r.id}, 'good_fit')">👍 Good</button>
                     <button class="btn-fb" onclick="sendFeedback(${r.id}, 'bad_fit')">👎 Bad</button>
